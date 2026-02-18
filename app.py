@@ -6,6 +6,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, curren
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import oauth_authorized
 from werkzeug.utils import secure_filename
+from sqlalchemy import or_
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'spektr-super-secret-key-2026'
@@ -170,8 +171,12 @@ def obshchenie():
     contacts = Contact.query.filter_by(user_id=current_user.id).all()
     contact_users = [User.query.get(c.contact_id) for c in contacts]
     
-    # Получаем всех пользователей (для добавления)
-    all_users = User.query.filter(User.id != current_user.id).all()
+    # Получаем всех пользователей (для добавления), исключая себя и уже добавленных
+    existing_contact_ids = [c.contact_id for c in contacts]
+    all_users = User.query.filter(
+        User.id != current_user.id,
+        ~User.id.in_(existing_contact_ids) if existing_contact_ids else True
+    ).all()
     
     return render_template('obshchenie.html', 
                           user=current_user, 
@@ -188,7 +193,6 @@ def add_contact():
     contact_id = data.get('contact_id')
     
     if contact_id:
-        # Проверяем, нет ли уже такого контакта
         existing = Contact.query.filter_by(user_id=current_user.id, contact_id=contact_id).first()
         if not existing:
             contact = Contact(user_id=current_user.id, contact_id=contact_id)
@@ -234,7 +238,7 @@ def send_message():
         )
         db.session.add(msg)
         db.session.commit()
-        return jsonify({'success': True})
+        return jsonify({'success': True, 'id': msg.id, 'timestamp': msg.timestamp.strftime('%H:%M')})
     
     return jsonify({'error': 'Invalid data'}), 400
 
@@ -257,7 +261,11 @@ def group_chat(group_id):
     # Получаем всех пользователей для добавления в группу (только для админов)
     all_users = []
     if membership.is_admin:
-        all_users = User.query.filter(User.id != current_user.id).all()
+        existing_member_ids = [m.user_id for m in members]
+        all_users = User.query.filter(
+            User.id != current_user.id,
+            ~User.id.in_(existing_member_ids) if existing_member_ids else True
+        ).all()
     
     return render_template('group_chat.html', 
                           user=current_user, 
@@ -277,7 +285,6 @@ def add_to_group():
     user_id = data.get('user_id')
     
     if group_id and user_id:
-        # Проверяем, админ ли
         membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=group_id).first()
         if membership and membership.is_admin:
             existing = GroupMember.query.filter_by(user_id=user_id, group_id=group_id).first()
@@ -326,7 +333,7 @@ def send_group_message():
         )
         db.session.add(msg)
         db.session.commit()
-        return jsonify({'success': True})
+        return jsonify({'success': True, 'id': msg.id, 'timestamp': msg.timestamp.strftime('%H:%M')})
     
     return jsonify({'error': 'Invalid data'}), 400
 
