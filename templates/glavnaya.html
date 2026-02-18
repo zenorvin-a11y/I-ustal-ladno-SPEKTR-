@@ -5,31 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Спектр Общения</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #0a0c10 0%, #1a1e24 100%);
             color: white;
             min-height: 100vh;
-            margin: 0;
+        }
+        
+        .navbar {
+            background-color: #1a1e24;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
+            flex-wrap: wrap;
         }
-        .container {
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo img {
+            height: 40px;
+            width: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .logo span {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: white;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        
+        .nav-links a:hover {
+            background-color: rgba(76, 175, 80, 0.2);
+        }
+        
+        .main-content {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
             text-align: center;
-            padding: 2rem;
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-            box-shadow: 0 4px 30px rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-            max-width: 500px;
-            width: 90%;
         }
-        h1 {
+        
+        .hero {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 3rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        .hero h1 {
+            font-size: 2.5rem;
             color: #4CAF50;
             margin-bottom: 1rem;
         }
+        
+        .hero p {
+            font-size: 1.2rem;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 2rem;
+        }
+        
         .btn {
             display: inline-block;
             background: #4CAF50;
@@ -38,35 +107,107 @@
             text-decoration: none;
             border-radius: 5px;
             font-weight: bold;
-            margin-top: 1rem;
             transition: background 0.3s;
         }
+        
         .btn:hover {
             background: #45a049;
         }
+        
         .user-info {
-            margin: 1rem 0;
+            background: rgba(76, 175, 80, 0.1);
             padding: 1rem;
-            background: rgba(255,255,255,0.1);
             border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .feature-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 2rem;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        .feature-card h3 {
+            color: #4CAF50;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card p {
+            color: rgba(255,255,255,0.7);
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.5rem;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <img src="/static/logo.png" alt="Logo" style="width: 100px; height: 100px; border-radius: 50%; margin-bottom: 1rem;">
-        <h1>СПЕКТР ОБЩЕНИЯ</h1>
-        
-        {% if user %}
-        <div class="user-info">
-            <h2>Привет, {{ user.name }}!</h2>
-            <p>{{ user.email }}</p>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/static/logo.png" alt="Logo">
+                <span>СПЕКТР ОБЩЕНИЯ</span>
+            </div>
+            <div class="nav-links">
+                <a href="/">ГЛАВНАЯ</a>
+                <a href="/profile">ПРОФИЛЬ</a>
+                <a href="/groups">ГРУППЫ</a>
+                <a href="/terms">УСЛОВИЯ</a>
+                {% if user %}
+                <a href="/vyhod" class="btn" style="padding: 0.5rem 1rem;">ВЫЙТИ</a>
+                {% else %}
+                <a href="/login/google" class="btn" style="padding: 0.5rem 1rem;">ВОЙТИ</a>
+                {% endif %}
+            </div>
         </div>
-        <a href="/vyhod" class="btn">Выйти</a>
+    </nav>
+
+    <main class="main-content">
+        {% if user %}
+        <div class="hero">
+            <h1>С возвращением, {{ user.name }}!</h1>
+            <p>Вы успешно вошли в систему</p>
+            <div class="user-info">
+                <p>{{ user.email }}</p>
+            </div>
+            <a href="/profile" class="btn">ПЕРЕЙТИ В ПРОФИЛЬ</a>
+        </div>
         {% else %}
-        <p>Войдите через Google, чтобы начать общение</p>
-        <a href="/login/google" class="btn">Войти через Google</a>
+        <div class="hero">
+            <h1>ДОБРО ПОЖАЛОВАТЬ В СПЕКТР ОБЩЕНИЯ</h1>
+            <p>Современная платформа для комфортного и безопасного общения</p>
+            <a href="/login/google" class="btn">ВОЙТИ ЧЕРЕЗ GOOGLE</a>
+        </div>
         {% endif %}
-    </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <h3>🔒 БЕЗОПАСНОСТЬ</h3>
+                <p>Ваши данные защищены современными технологиями</p>
+            </div>
+            <div class="feature-card">
+                <h3>💬 ОБЩЕНИЕ</h3>
+                <p>Удобные чаты и группы для любых тем</p>
+            </div>
+            <div class="feature-card">
+                <h3>🌐 ДОСТУПНОСТЬ</h3>
+                <p>Работает везде: компьютер, планшет, телефон</p>
+            </div>
+        </div>
+    </main>
 </body>
 </html>
