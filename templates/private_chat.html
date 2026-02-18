@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат с {{ other_user.name }} - Спектр Общения</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0c10 0%, #1a1e24 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background-color: #1a1e24;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo img {
+            height: 40px;
+            width: 40px;
+            border-radius: 50%;
+        }
+        
+        .logo span {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: white;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+        }
+        
+        .chat-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 200px);
+        }
+        
+        .chat-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .chat-header img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+        
+        .chat-header h2 {
+            color: #4CAF50;
+        }
+        
+        .messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .message {
+            max-width: 70%;
+            padding: 0.8rem;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .message.sent {
+            align-self: flex-end;
+            background: #4CAF50;
+        }
+        
+        .message.received {
+            align-self: flex-start;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 0.3rem;
+            text-align: right;
+        }
+        
+        .input-area {
+            padding: 1rem;
+            border-top: 1px solid rgba(76, 175, 80, 0.3);
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .input-area input {
+            flex: 1;
+            padding: 0.8rem;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid #4CAF50;
+            border-radius: 4px;
+            color: white;
+        }
+        
+        .input-area button {
+            padding: 0.8rem 2rem;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            margin: 1rem auto;
+            color: #4CAF50;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/static/logo.png" alt="Logo">
+                <span>СПЕКТР ОБЩЕНИЯ</span>
+            </div>
+            <div class="nav-links">
+                <a href="/">ГЛАВНАЯ</a>
+                <a href="/obshchenie">ОБЩЕНИЕ</a>
+                <a href="/profile">ПРОФИЛЬ</a>
+                <a href="/terms">УСЛОВИЯ</a>
+                <a href="/vyhod">ВЫЙТИ</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <img src="{{ other_user.avatar }}" alt="Avatar" onerror="this.src='/static/logo.png'">
+            <h2>{{ other_user.name }}</h2>
+        </div>
+        
+        <div class="messages" id="messages">
+            {% for msg in messages %}
+            <div class="message {% if msg.sender_id == user.id %}sent{% else %}received{% endif %}">
+                <div>{{ msg.content }}</div>
+                <div class="message-time">{{ msg.timestamp.strftime('%H:%M') }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Введите сообщение...">
+            <button onclick="sendMessage()">Отправить</button>
+        </div>
+    </div>
+    
+    <div style="text-align: center;">
+        <a href="/obshchenie" class="back-btn">← НАЗАД К ЧАТАМ</a>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            
+            if (content) {
+                fetch('/send_message', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        receiver_id: {{ other_user.id }},
+                        content: content
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = 'message sent';
+                        messageDiv.innerHTML = `
+                            <div>${content}</div>
+                            <div class="message-time">сейчас</div>
+                        `;
+                        messagesDiv.appendChild(messageDiv);
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        input.value = '';
+                    }
+                });
+            }
+        }
+        
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Обновление сообщений каждые 3 секунды
+        setInterval(() => {
+            location.reload();
+        }, 3000);
+    </script>
+</body>
+</html>
