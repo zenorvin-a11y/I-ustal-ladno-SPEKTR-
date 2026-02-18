@@ -1,1 +1,0 @@
-# I-ustal-ladno-SPEKTR-
