@@ -292,4 +292,182 @@
             width: 100%;
         }
         
-        @media (max-width
+        @media (max-width: 768px) {
+            .chat-container {
+                flex-direction: column;
+            }
+            
+            .members-sidebar {
+                max-height: 200px;
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/static/logo.png" alt="Logo">
+                <span>СПЕКТР ОБЩЕНИЯ</span>
+            </div>
+            <div class="nav-links">
+                <a href="/">ГЛАВНАЯ</a>
+                <a href="/obshchenie">ОБЩЕНИЕ</a>
+                <a href="/profile">ПРОФИЛЬ</a>
+                <a href="/terms">УСЛОВИЯ</a>
+                <a href="/vyhod">ВЫЙТИ</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="chat-container">
+        <div class="chat-main">
+            <div class="chat-header">
+                <div>
+                    <h2>{{ group.name }}</h2>
+                    <p>{{ group.description }}</p>
+                </div>
+                {% if is_admin %}
+                <button class="add-member-btn" onclick="showAddMemberModal()">+ ДОБАВИТЬ УЧАСТНИКА</button>
+                {% endif %}
+            </div>
+            
+            <div class="messages" id="messages">
+                {% for msg in messages %}
+                <div class="message {% if msg.user_id == user.id %}own{% endif %}">
+                    <div class="message-header">
+                        <span class="message-author">{{ msg.user.name }}</span>
+                        <span class="message-time">{{ msg.timestamp.strftime('%H:%M') }}</span>
+                    </div>
+                    <div>{{ msg.content }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="input-area">
+                <input type="text" id="messageInput" placeholder="Введите сообщение...">
+                <button onclick="sendMessage()">Отправить</button>
+            </div>
+        </div>
+        
+        <div class="members-sidebar">
+            <h3>Участники ({{ members|length }})</h3>
+            {% for member in members %}
+            <div class="member-item">
+                <img src="{{ member.user.avatar }}" alt="Avatar" class="member-avatar" onerror="this.src='/static/logo.png'">
+                <span class="member-name">{{ member.user.name }}</span>
+                {% if member.is_admin %}
+                <span class="admin-badge">👑</span>
+                {% endif %}
+                {% if is_admin and member.user.id != user.id %}
+                <button class="remove-btn" onclick="removeFromGroup({{ member.user.id }})">✕</button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления участника -->
+    <div class="modal" id="addMemberModal">
+        <div class="modal-content">
+            <h3>Добавить участника</h3>
+            <div class="users-list">
+                {% for user in all_users %}
+                <div class="user-item">
+                    <img src="{{ user.avatar }}" alt="Avatar" class="user-avatar" onerror="this.src='/static/logo.png'">
+                    <span class="user-name">{{ user.name }}</span>
+                    <button class="select-btn" onclick="addToGroup({{ user.id }})">ДОБАВИТЬ</button>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="cancel-btn" onclick="hideAddMemberModal()">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            
+            if (content) {
+                fetch('/send_group_message', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        group_id: {{ group.id }},
+                        content: content
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
+            }
+        }
+        
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        setInterval(() => {
+            location.reload();
+        }, 5000);
+        
+        function showAddMemberModal() {
+            document.getElementById('addMemberModal').classList.add('active');
+        }
+        
+        function hideAddMemberModal() {
+            document.getElementById('addMemberModal').classList.remove('active');
+        }
+        
+        function addToGroup(userId) {
+            fetch('/add_to_group', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    group_id: {{ group.id }},
+                    user_id: userId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Ошибка при добавлении');
+                }
+            });
+        }
+        
+        function removeFromGroup(userId) {
+            if (confirm('Удалить участника из группы?')) {
+                fetch('/remove_from_group', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        group_id: {{ group.id }},
+                        user_id: userId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Ошибка при удалении');
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
