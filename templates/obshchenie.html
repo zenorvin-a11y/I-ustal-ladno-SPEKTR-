@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Общение - Спектр Общения</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0c10 0%, #1a1e24 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background-color: #1a1e24;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo img {
+            height: 40px;
+            width: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .logo span {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: white;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        
+        .nav-links a:hover {
+            background-color: rgba(76, 175, 80, 0.2);
+        }
+        
+        .main-content {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+        }
+        
+        .chat-sections {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .private-chats {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .group-chats {
+            flex: 2;
+            min-width: 400px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .create-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .chat-list {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 1rem;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        .chat-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .chat-item:hover {
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .chat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .chat-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .chat-info {
+            flex: 1;
+        }
+        
+        .chat-name {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .chat-preview {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.9rem;
+            margin-top: 0.2rem;
+        }
+        
+        .chat-time {
+            color: rgba(255,255,255,0.3);
+            font-size: 0.8rem;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #1a1e24;
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid #4CAF50;
+        }
+        
+        .modal-content h2 {
+            color: #4CAF50;
+            margin-bottom: 1rem;
+        }
+        
+        .modal-content input,
+        .modal-content textarea {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            background: #0a0c10;
+            border: 1px solid #4CAF50;
+            border-radius: 4px;
+            color: white;
+        }
+        
+        .modal-content button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        @media (max-width: 768px) {
+            .chat-sections {
+                flex-direction: column;
+            }
+            
+            .group-chats {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/static/logo.png" alt="Logo">
+                <span>СПЕКТР ОБЩЕНИЯ</span>
+            </div>
+            <div class="nav-links">
+                <a href="/">ГЛАВНАЯ</a>
+                <a href="/obshchenie">ОБЩЕНИЕ</a>
+                <a href="/profile">ПРОФИЛЬ</a>
+                <a href="/terms">УСЛОВИЯ</a>
+                <a href="/vyhod">ВЫЙТИ</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <h1>ОБЩЕНИЕ</h1>
+        
+        <div class="chat-sections">
+            <div class="private-chats">
+                <h2>Личные чаты</h2>
+                <div class="chat-list">
+                    {% if chat_users %}
+                        {% for chat_user in chat_users %}
+                        <div class="chat-item" onclick="location.href='/chat/{{ chat_user.id }}'">
+                            <img src="{{ chat_user.avatar }}" alt="Avatar" class="chat-avatar" onerror="this.src='/static/logo.png'">
+                            <div class="chat-info">
+                                <div class="chat-name">{{ chat_user.name }}</div>
+                                <div class="chat-preview">Нажмите для начала общения</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="padding: 2rem; text-align: center; color: rgba(255,255,255,0.5);">
+                            Нет личных чатов. Начните общение с пользователями!
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="group-chats">
+                <div class="section-header">
+                    <h2>Группы</h2>
+                    <button class="create-btn" onclick="showCreateGroupModal()">+ СОЗДАТЬ ГРУППУ</button>
+                </div>
+                <div class="chat-list">
+                    {% if groups %}
+                        {% for group in groups %}
+                        <div class="chat-item" onclick="location.href='/group/{{ group.id }}'">
+                            <img src="{{ group.avatar }}" alt="Group Avatar" class="chat-avatar" onerror="this.src='/static/group.png'">
+                            <div class="chat-info">
+                                <div class="chat-name">{{ group.name }}</div>
+                                <div class="chat-preview">{{ group.description or 'Нет описания' }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="padding: 2rem; text-align: center; color: rgba(255,255,255,0.5);">
+                            Пока нет групп. Создайте первую!
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Модальное окно создания группы -->
+    <div class="modal" id="createGroupModal">
+        <div class="modal-content">
+            <h2>Создать группу</h2>
+            <form action="/create_group" method="post">
+                <input type="text" name="name" placeholder="Название группы" required>
+                <textarea name="description" placeholder="Описание группы" rows="3"></textarea>
+                <button type="submit">СОЗДАТЬ</button>
+            </form>
+            <button onclick="hideCreateGroupModal()" style="background: #f44336; margin-top: 0.5rem;">ОТМЕНА</button>
+        </div>
+    </div>
+
+    <script>
+        function showCreateGroupModal() {
+            document.getElementById('createGroupModal').classList.add('active');
+        }
+        
+        function hideCreateGroupModal() {
+            document.getElementById('createGroupModal').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
