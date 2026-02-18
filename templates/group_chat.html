@@ -60,6 +60,13 @@
             color: white;
             font-weight: 500;
             padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-links a:hover {
+            color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 4px;
         }
         
         .chat-container {
@@ -68,6 +75,12 @@
             display: flex;
             gap: 2rem;
             padding: 0 2rem;
+            animation: fadeIn 0.8s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .chat-main {
@@ -104,6 +117,13 @@
             padding: 0.5rem 1rem;
             border-radius: 4px;
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .add-member-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
         }
         
         .messages {
@@ -120,6 +140,12 @@
             padding: 0.8rem;
             border-radius: 8px;
             background: rgba(255,255,255,0.1);
+            animation: messageIn 0.3s ease;
+        }
+        
+        @keyframes messageIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .message.own {
@@ -161,6 +187,13 @@
             border: 1px solid #4CAF50;
             border-radius: 4px;
             color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .input-area input:focus {
+            outline: none;
+            border-color: #45a049;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
         }
         
         .input-area button {
@@ -170,6 +203,20 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .input-area button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+        }
+        
+        .input-area button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         
         .members-sidebar {
@@ -191,12 +238,35 @@
             gap: 0.5rem;
             padding: 0.5rem;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+            transition: background 0.3s ease;
+            animation: memberIn 0.5s ease;
+            animation-fill-mode: both;
+        }
+        
+        @keyframes memberIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .member-item:nth-child(2) { animation-delay: 0.1s; }
+        .member-item:nth-child(3) { animation-delay: 0.2s; }
+        .member-item:nth-child(4) { animation-delay: 0.3s; }
+        .member-item:nth-child(5) { animation-delay: 0.4s; }
+        .member-item:nth-child(6) { animation-delay: 0.5s; }
+        
+        .member-item:hover {
+            background: rgba(76, 175, 80, 0.1);
         }
         
         .member-avatar {
             width: 30px;
             height: 30px;
             border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+        
+        .member-item:hover .member-avatar {
+            transform: scale(1.1);
         }
         
         .member-name {
@@ -216,6 +286,12 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+        
+        .remove-btn:hover {
+            background: #d32f2f;
+            transform: scale(1.1);
         }
         
         .modal {
@@ -229,10 +305,13 @@
             z-index: 2000;
             align-items: center;
             justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
         
         .modal.active {
             display: flex;
+            opacity: 1;
         }
         
         .modal-content {
@@ -242,6 +321,12 @@
             max-width: 500px;
             width: 90%;
             border: 1px solid #4CAF50;
+            transform: scale(0.7);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal.active .modal-content {
+            transform: scale(1);
         }
         
         .modal-content h3 {
@@ -261,6 +346,11 @@
             gap: 1rem;
             padding: 0.5rem;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+            transition: background 0.3s ease;
+        }
+        
+        .user-item:hover {
+            background: rgba(76, 175, 80, 0.1);
         }
         
         .user-avatar {
@@ -280,6 +370,12 @@
             padding: 0.3rem 0.8rem;
             border-radius: 4px;
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .select-btn:hover {
+            background: #45a049;
+            transform: scale(1.05);
         }
         
         .cancel-btn {
@@ -290,6 +386,11 @@
             border-radius: 4px;
             cursor: pointer;
             width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .cancel-btn:hover {
+            background: #d32f2f;
         }
         
         @media (max-width: 768px) {
@@ -346,8 +447,8 @@
             </div>
             
             <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Введите сообщение...">
-                <button onclick="sendMessage()">Отправить</button>
+                <input type="text" id="messageInput" placeholder="Введите сообщение..." onkeypress="handleKeyPress(event)">
+                <button id="sendButton" onclick="sendMessage()">Отправить</button>
             </div>
         </div>
         
@@ -372,6 +473,7 @@
     <div class="modal" id="addMemberModal">
         <div class="modal-content">
             <h3>Добавить участника</h3>
+            {% if all_users %}
             <div class="users-list">
                 {% for user in all_users %}
                 <div class="user-item">
@@ -381,6 +483,11 @@
                 </div>
                 {% endfor %}
             </div>
+            {% else %}
+            <div style="text-align: center; padding: 1rem; color: rgba(255,255,255,0.5);">
+                Нет пользователей для добавления
+            </div>
+            {% endif %}
             <button class="cancel-btn" onclick="hideAddMemberModal()">ЗАКРЫТЬ</button>
         </div>
     </div>
@@ -389,37 +496,63 @@
         const messagesDiv = document.getElementById('messages');
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
+        let isSending = false;
+        const sendButton = document.getElementById('sendButton');
+        const messageInput = document.getElementById('messageInput');
+        
         function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const content = input.value.trim();
+            const content = messageInput.value.trim();
             
-            if (content) {
-                fetch('/send_group_message', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        group_id: {{ group.id }},
-                        content: content
-                    })
+            if (!content || isSending) return;
+            
+            // Блокируем кнопку
+            isSending = true;
+            sendButton.disabled = true;
+            
+            fetch('/send_group_message', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    group_id: {{ group.id }},
+                    content: content
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    }
-                });
-            }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Добавляем сообщение на страницу без перезагрузки
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'message own';
+                    messageDiv.innerHTML = `
+                        <div class="message-header">
+                            <span class="message-author">Вы</span>
+                            <span class="message-time">${data.timestamp}</span>
+                        </div>
+                        <div>${content}</div>
+                    `;
+                    messagesDiv.appendChild(messageDiv);
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    messageInput.value = '';
+                } else {
+                    alert('Ошибка при отправке');
+                }
+            })
+            .catch(error => {
+                alert('Ошибка сети');
+            })
+            .finally(() => {
+                // Разблокируем кнопку
+                isSending = false;
+                sendButton.disabled = false;
+            });
         }
         
-        document.getElementById('messageInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
                 sendMessage();
             }
-        });
-        
-        setInterval(() => {
-            location.reload();
-        }, 5000);
+        }
         
         function showAddMemberModal() {
             document.getElementById('addMemberModal').classList.add('active');
@@ -430,6 +563,10 @@
         }
         
         function addToGroup(userId) {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = '...';
+            
             fetch('/add_to_group', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -444,7 +581,14 @@
                     location.reload();
                 } else {
                     alert('Ошибка при добавлении');
+                    button.disabled = false;
+                    button.textContent = 'ДОБАВИТЬ';
                 }
+            })
+            .catch(error => {
+                alert('Ошибка сети');
+                button.disabled = false;
+                button.textContent = 'ДОБАВИТЬ';
             });
         }
         
@@ -466,6 +610,29 @@
                         alert('Ошибка при удалении');
                     }
                 });
+            }
+        }
+        
+        // Автоматическое обновление сообщений
+        let lastMessageCount = {{ messages|length }};
+        
+        function checkNewMessages() {
+            fetch(`/group/{{ group.id }}/messages`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.count > lastMessageCount) {
+                        location.reload();
+                    }
+                });
+        }
+        
+        // Проверяем новые сообщения каждые 5 секунд
+        setInterval(checkNewMessages, 5000);
+        
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
             }
         }
     </script>
