@@ -5,7 +5,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import oauth_authorized
-from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -14,6 +13,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spektr.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/avatars'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 
 # Создаём папку для аватарок если нет
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -33,7 +33,6 @@ class User(UserMixin, db.Model):
     sound = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
-    # Отношения
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy=True)
     received_messages = db.relationship('Message', foreign_keys='Message.receiver_id', backref='receiver', lazy=True)
     group_memberships = db.relationship('GroupMember', backref='user', lazy=True)
@@ -131,19 +130,31 @@ def update_profile():
     if not current_user.is_authenticated:
         return jsonify({'error': 'Not logged in'}), 401
     
-    data = request.form
+    # Обновляем настройки
+    if 'theme' in request.form:
+        current_user.theme = request.form.get('theme', 'dark')
+    if 'notifications' in request.form:
+        current_user.notifications = request.form.get('notifications') == 'on'
+    if 'sound' in request.form:
+        current_user.sound = request.form.get('sound') == 'on'
+    
+    # Загрузка аватарки
     if 'avatar' in request.files:
         file = request.files['avatar']
         if file and file.filename:
-            filename = secure_filename(f"user_{current_user.id}_{file.filename}")
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            current_user.avatar = f'/static/avatars/{filename}'
-    
-    current_user.theme = data.get('theme', current_user.theme)
-    current_user.notifications = data.get('notifications') == 'on'
-    current_user.sound = data.get('sound') == 'on'
+            # Проверяем расширение
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if ext in app.config['ALLOWED_EXTENSIONS']:
+                filename = secure_filename(f"user_{current_user.id}_{file.filename}")
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                current_user.avatar = f'/static/avatars/{filename}'
     
     db.session.commit()
+    
+    # Если это AJAX запрос
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'avatar': current_user.avatar})
+    
     return redirect(url_for('profile'))
 
 @app.route('/obshchenie')
@@ -154,7 +165,7 @@ def obshchenie():
     # Получаем все группы
     groups = Group.query.all()
     
-    # Получаем личные чаты (пользователи, с которыми есть переписка)
+    # Получаем личные чаты
     sent_users = db.session.query(User).join(Message, Message.receiver_id == User.id).filter(Message.sender_id == current_user.id).distinct()
     received_users = db.session.query(User).join(Message, Message.sender_id == User.id).filter(Message.receiver_id == current_user.id).distinct()
     chat_users = sent_users.union(received_users).all()
@@ -168,7 +179,6 @@ def private_chat(user_id):
     
     other_user = User.query.get_or_404(user_id)
     
-    # Получаем сообщения между пользователями
     messages = Message.query.filter(
         ((Message.sender_id == current_user.id) & (Message.receiver_id == user_id)) |
         ((Message.sender_id == user_id) & (Message.receiver_id == current_user.id))
@@ -213,7 +223,6 @@ def group_chat(group_id):
     # Проверяем, состоит ли пользователь в группе
     membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=group_id).first()
     if not membership:
-        # Добавляем пользователя в группу
         membership = GroupMember(user_id=current_user.id, group_id=group_id)
         db.session.add(membership)
         db.session.commit()
