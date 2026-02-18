@@ -12,17 +12,16 @@ app.config['SECRET_KEY'] = 'spektr-super-secret-key-2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spektr.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/avatars'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 
-# Создаём папку для аватарок если нет
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'glavnaya'
 
-# ========== МОДЕЛИ БАЗЫ ДАННЫХ ==========
+# ========== МОДЕЛИ ==========
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True, nullable=False)
@@ -36,6 +35,14 @@ class User(UserMixin, db.Model):
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy=True)
     received_messages = db.relationship('Message', foreign_keys='Message.receiver_id', backref='receiver', lazy=True)
     group_memberships = db.relationship('GroupMember', backref='user', lazy=True)
+    contacts = db.relationship('Contact', foreign_keys='Contact.user_id', backref='user', lazy=True)
+    added_by = db.relationship('Contact', foreign_keys='Contact.contact_id', backref='contact', lazy=True)
+
+class Contact(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    contact_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -73,7 +80,6 @@ class GroupMessage(db.Model):
     
     user = db.relationship('User', foreign_keys=[user_id])
 
-# Создаём таблицы
 with app.app_context():
     db.create_all()
 
@@ -130,7 +136,6 @@ def update_profile():
     if not current_user.is_authenticated:
         return jsonify({'error': 'Not logged in'}), 401
     
-    # Обновляем настройки
     if 'theme' in request.form:
         current_user.theme = request.form.get('theme', 'dark')
     if 'notifications' in request.form:
@@ -138,11 +143,9 @@ def update_profile():
     if 'sound' in request.form:
         current_user.sound = request.form.get('sound') == 'on'
     
-    # Загрузка аватарки
     if 'avatar' in request.files:
         file = request.files['avatar']
         if file and file.filename:
-            # Проверяем расширение
             ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
             if ext in app.config['ALLOWED_EXTENSIONS']:
                 filename = secure_filename(f"user_{current_user.id}_{file.filename}")
@@ -151,7 +154,6 @@ def update_profile():
     
     db.session.commit()
     
-    # Если это AJAX запрос
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': True, 'avatar': current_user.avatar})
     
@@ -162,15 +164,39 @@ def obshchenie():
     if not current_user.is_authenticated:
         return redirect(url_for('glavnaya'))
     
-    # Получаем все группы
     groups = Group.query.all()
     
-    # Получаем личные чаты
-    sent_users = db.session.query(User).join(Message, Message.receiver_id == User.id).filter(Message.sender_id == current_user.id).distinct()
-    received_users = db.session.query(User).join(Message, Message.sender_id == User.id).filter(Message.receiver_id == current_user.id).distinct()
-    chat_users = sent_users.union(received_users).all()
+    # Получаем контакты
+    contacts = Contact.query.filter_by(user_id=current_user.id).all()
+    contact_users = [User.query.get(c.contact_id) for c in contacts]
     
-    return render_template('obshchenie.html', user=current_user, groups=groups, chat_users=chat_users)
+    # Получаем всех пользователей (для добавления)
+    all_users = User.query.filter(User.id != current_user.id).all()
+    
+    return render_template('obshchenie.html', 
+                          user=current_user, 
+                          groups=groups, 
+                          contacts=contact_users,
+                          all_users=all_users)
+
+@app.route('/add_contact', methods=['POST'])
+def add_contact():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    data = request.json
+    contact_id = data.get('contact_id')
+    
+    if contact_id:
+        # Проверяем, нет ли уже такого контакта
+        existing = Contact.query.filter_by(user_id=current_user.id, contact_id=contact_id).first()
+        if not existing:
+            contact = Contact(user_id=current_user.id, contact_id=contact_id)
+            db.session.add(contact)
+            db.session.commit()
+            return jsonify({'success': True})
+    
+    return jsonify({'error': 'Invalid data'}), 400
 
 @app.route('/chat/<int:user_id>')
 def private_chat(user_id):
@@ -184,7 +210,6 @@ def private_chat(user_id):
         ((Message.sender_id == user_id) & (Message.receiver_id == current_user.id))
     ).order_by(Message.timestamp).all()
     
-    # Отмечаем сообщения как прочитанные
     for msg in messages:
         if msg.receiver_id == current_user.id and not msg.is_read:
             msg.is_read = True
@@ -220,7 +245,6 @@ def group_chat(group_id):
     
     group = Group.query.get_or_404(group_id)
     
-    # Проверяем, состоит ли пользователь в группе
     membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=group_id).first()
     if not membership:
         membership = GroupMember(user_id=current_user.id, group_id=group_id)
@@ -230,7 +254,60 @@ def group_chat(group_id):
     messages = GroupMessage.query.filter_by(group_id=group_id).order_by(GroupMessage.timestamp).all()
     members = GroupMember.query.filter_by(group_id=group_id).all()
     
-    return render_template('group_chat.html', user=current_user, group=group, messages=messages, members=members)
+    # Получаем всех пользователей для добавления в группу (только для админов)
+    all_users = []
+    if membership.is_admin:
+        all_users = User.query.filter(User.id != current_user.id).all()
+    
+    return render_template('group_chat.html', 
+                          user=current_user, 
+                          group=group, 
+                          messages=messages, 
+                          members=members,
+                          all_users=all_users,
+                          is_admin=membership.is_admin)
+
+@app.route('/add_to_group', methods=['POST'])
+def add_to_group():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    data = request.json
+    group_id = data.get('group_id')
+    user_id = data.get('user_id')
+    
+    if group_id and user_id:
+        # Проверяем, админ ли
+        membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=group_id).first()
+        if membership and membership.is_admin:
+            existing = GroupMember.query.filter_by(user_id=user_id, group_id=group_id).first()
+            if not existing:
+                new_member = GroupMember(user_id=user_id, group_id=group_id)
+                db.session.add(new_member)
+                db.session.commit()
+                return jsonify({'success': True})
+    
+    return jsonify({'error': 'Permission denied'}), 403
+
+@app.route('/remove_from_group', methods=['POST'])
+def remove_from_group():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    data = request.json
+    group_id = data.get('group_id')
+    user_id = data.get('user_id')
+    
+    if group_id and user_id:
+        membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=group_id).first()
+        if membership and membership.is_admin:
+            to_remove = GroupMember.query.filter_by(user_id=user_id, group_id=group_id).first()
+            if to_remove:
+                db.session.delete(to_remove)
+                db.session.commit()
+                return jsonify({'success': True})
+    
+    return jsonify({'error': 'Permission denied'}), 403
 
 @app.route('/send_group_message', methods=['POST'])
 def send_group_message():
@@ -270,7 +347,6 @@ def create_group():
         db.session.add(group)
         db.session.commit()
         
-        # Добавляем создателя как админа
         membership = GroupMember(
             user_id=current_user.id,
             group_id=group.id,
