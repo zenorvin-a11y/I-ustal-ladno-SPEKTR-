@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Общение - Спектр Общения</title>
+    <title>Группы - Спектр Общения</title>
     <style>
         * {
             margin: 0;
@@ -77,39 +77,12 @@
             max-width: 1400px;
             margin: 2rem auto;
             padding: 0 2rem;
-            animation: fadeIn 0.8s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
         }
         
         h1 {
             color: #4CAF50;
             margin-bottom: 2rem;
             font-size: 2rem;
-        }
-        
-        .chat-sections {
-            display: flex;
-            gap: 2rem;
-            flex-wrap: wrap;
-        }
-        
-        .contacts-section, .groups-section {
-            flex: 1;
-            min-width: 300px;
-            animation: slideIn 0.6s ease;
-            animation-fill-mode: both;
-        }
-        
-        .contacts-section { animation-delay: 0.1s; }
-        .groups-section { animation-delay: 0.3s; }
-        
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
         }
         
         .section-header {
@@ -119,114 +92,69 @@
             margin-bottom: 1rem;
         }
         
-        .create-btn, .add-contact-btn {
+        .create-btn {
             background: #4CAF50;
             color: white;
             border: none;
             padding: 0.5rem 1rem;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 0.9rem;
             transition: all 0.3s ease;
         }
         
-        .create-btn:hover, .add-contact-btn:hover {
+        .create-btn:hover {
             background: #45a049;
             transform: translateY(-2px);
             box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
         }
         
-        .chat-list {
+        .groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .group-card {
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
-            padding: 1rem;
+            padding: 1.5rem;
             border: 1px solid rgba(76, 175, 80, 0.3);
-            max-height: 500px;
-            overflow-y: auto;
-        }
-        
-        .chat-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
             cursor: pointer;
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
         
-        .chat-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: rgba(76, 175, 80, 0.1);
-            transition: left 0.3s ease;
-            z-index: -1;
+        .group-card:hover {
+            transform: translateY(-5px);
+            border-color: #4CAF50;
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
         }
         
-        .chat-item:hover::before {
-            left: 0;
-        }
-        
-        .chat-item:hover {
-            transform: translateX(5px);
-        }
-        
-        .chat-item:last-child {
-            border-bottom: none;
-        }
-        
-        .chat-avatar {
-            width: 50px;
-            height: 50px;
+        .group-avatar {
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            object-fit: cover;
-            transition: transform 0.3s ease;
+            margin-bottom: 1rem;
         }
         
-        .chat-item:hover .chat-avatar {
-            transform: scale(1.1);
-        }
-        
-        .chat-info {
-            flex: 1;
-        }
-        
-        .chat-name {
-            font-weight: bold;
+        .group-name {
+            font-size: 1.3rem;
             color: #4CAF50;
+            margin-bottom: 0.5rem;
         }
         
-        .chat-preview {
+        .group-description {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+        
+        .group-meta {
+            display: flex;
+            justify-content: space-between;
             color: rgba(255,255,255,0.5);
             font-size: 0.9rem;
-            margin-top: 0.2rem;
-        }
-        
-        .chat-time {
-            color: rgba(255,255,255,0.3);
-            font-size: 0.8rem;
-        }
-        
-        .add-btn {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 0.3rem 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: all 0.3s ease;
-        }
-        
-        .add-btn:hover {
-            background: #45a049;
-            transform: scale(1.05);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 1rem;
         }
         
         .modal {
@@ -240,13 +168,10 @@
             z-index: 2000;
             align-items: center;
             justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
         }
         
         .modal.active {
             display: flex;
-            opacity: 1;
         }
         
         .modal-content {
@@ -256,22 +181,15 @@
             max-width: 500px;
             width: 90%;
             border: 1px solid #4CAF50;
-            transform: scale(0.7);
-            transition: transform 0.3s ease;
         }
         
-        .modal.active .modal-content {
-            transform: scale(1);
-        }
-        
-        .modal-content h2, .modal-content h3 {
+        .modal-content h2 {
             color: #4CAF50;
             margin-bottom: 1rem;
         }
         
         .modal-content input,
-        .modal-content textarea,
-        .modal-content select {
+        .modal-content textarea {
             width: 100%;
             padding: 0.8rem;
             margin-bottom: 1rem;
@@ -279,15 +197,6 @@
             border: 1px solid #4CAF50;
             border-radius: 4px;
             color: white;
-            transition: all 0.3s ease;
-        }
-        
-        .modal-content input:focus,
-        .modal-content textarea:focus,
-        .modal-content select:focus {
-            outline: none;
-            border-color: #45a049;
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
         }
         
         .modal-content button {
@@ -304,78 +213,22 @@
         
         .modal-content button:hover {
             background: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
         }
         
         .modal-content .cancel-btn {
             background: #f44336;
         }
         
-        .modal-content .cancel-btn:hover {
-            background: #d32f2f;
-        }
-        
-        .users-list {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-bottom: 1rem;
-        }
-        
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            transition: background 0.3s ease;
-        }
-        
-        .user-item:hover {
-            background: rgba(76, 175, 80, 0.1);
-        }
-        
-        .user-avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-        }
-        
-        .user-name {
-            flex: 1;
-        }
-        
-        .select-btn {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 0.3rem 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .select-btn:hover {
-            background: #45a049;
-            transform: scale(1.05);
-        }
-        
         .empty-message {
-            padding: 2rem;
+            grid-column: 1 / -1;
             text-align: center;
+            padding: 3rem;
             color: rgba(255,255,255,0.5);
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
         }
         
         @media (max-width: 768px) {
-            .chat-sections {
-                flex-direction: column;
+            .groups-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -389,66 +242,43 @@
             </div>
             <div class="nav-links">
                 <a href="/">ГЛАВНАЯ</a>
-                <a href="/obshchenie">ОБЩЕНИЕ</a>
+                <a href="/messages">СООБЩЕНИЯ</a>
+                <a href="/obshchenie">ГРУППЫ</a>
                 <a href="/profile">ПРОФИЛЬ</a>
                 <a href="/terms">УСЛОВИЯ</a>
+                {% if user.is_admin %}
+                <a href="/admin">АДМИН</a>
+                {% endif %}
                 <a href="/vyhod">ВЫЙТИ</a>
             </div>
         </div>
     </nav>
 
     <main class="main-content">
-        <h1>ОБЩЕНИЕ</h1>
-        
-        <div class="chat-sections">
-            <div class="contacts-section">
-                <div class="section-header">
-                    <h2>Контакты</h2>
-                    <button class="add-contact-btn" onclick="showAddContactModal()">+ ДОБАВИТЬ КОНТАКТ</button>
+        <div class="section-header">
+            <h1>ГРУППЫ</h1>
+            <button class="create-btn" onclick="showCreateGroupModal()">+ СОЗДАТЬ ГРУППУ</button>
+        </div>
+
+        <div class="groups-grid">
+            {% if groups %}
+                {% for group in groups %}
+                <div class="group-card" onclick="location.href='/group/{{ group.id }}'">
+                    <img src="{{ group.avatar }}" alt="Group Avatar" class="group-avatar" onerror="this.src='/static/group.png'">
+                    <div class="group-name">{{ group.name }}</div>
+                    <div class="group-description">{{ group.description or 'Нет описания' }}</div>
+                    <div class="group-meta">
+                        <span>{{ group.members|length }} участников</span>
+                        <span>Создана: {{ group.created_at.strftime('%d.%m.%Y') }}</span>
+                    </div>
                 </div>
-                <div class="chat-list">
-                    {% if contacts %}
-                        {% for contact in contacts %}
-                        <div class="chat-item" onclick="location.href='/chat/{{ contact.id }}'">
-                            <img src="{{ contact.avatar }}" alt="Avatar" class="chat-avatar" onerror="this.src='/static/logo.png'">
-                            <div class="chat-info">
-                                <div class="chat-name">{{ contact.name }}</div>
-                                <div class="chat-preview">Нажмите для начала общения</div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="empty-message">
-                            Нет контактов. Добавьте первый контакт!
-                        </div>
-                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <div class="empty-message">
+                    <h3>Пока нет групп</h3>
+                    <p>Создайте первую группу, чтобы начать общение</p>
                 </div>
-            </div>
-            
-            <div class="groups-section">
-                <div class="section-header">
-                    <h2>Группы</h2>
-                    <button class="create-btn" onclick="showCreateGroupModal()">+ СОЗДАТЬ ГРУППУ</button>
-                </div>
-                <div class="chat-list">
-                    {% if groups %}
-                        {% for group in groups %}
-                        <div class="chat-item" onclick="location.href='/group/{{ group.id }}'">
-                            <img src="{{ group.avatar }}" alt="Group Avatar" class="chat-avatar" onerror="this.src='/static/group.png'">
-                            <div class="chat-info">
-                                <div class="chat-name">{{ group.name }}</div>
-                                <div class="chat-preview">{{ group.description or 'Нет описания' }}</div>
-                                <div class="chat-preview">{{ group.members|length }} участников</div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="empty-message">
-                            Пока нет групп. Создайте первую!
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
+            {% endif %}
         </div>
     </main>
 
@@ -465,29 +295,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно добавления контакта -->
-    <div class="modal" id="addContactModal">
-        <div class="modal-content">
-            <h2>Добавить контакт</h2>
-            {% if all_users %}
-            <div class="users-list">
-                {% for user in all_users %}
-                <div class="user-item">
-                    <img src="{{ user.avatar }}" alt="Avatar" class="user-avatar" onerror="this.src='/static/logo.png'">
-                    <span class="user-name">{{ user.name }}</span>
-                    <button class="select-btn" onclick="addContact({{ user.id }})">ДОБАВИТЬ</button>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-message">
-                Нет пользователей для добавления
-            </div>
-            {% endif %}
-            <button class="cancel-btn" onclick="hideAddContactModal()">ЗАКРЫТЬ</button>
-        </div>
-    </div>
-
     <script>
         function showCreateGroupModal() {
             document.getElementById('createGroupModal').classList.add('active');
@@ -497,42 +304,6 @@
             document.getElementById('createGroupModal').classList.remove('active');
         }
         
-        function showAddContactModal() {
-            document.getElementById('addContactModal').classList.add('active');
-        }
-        
-        function hideAddContactModal() {
-            document.getElementById('addContactModal').classList.remove('active');
-        }
-        
-        function addContact(userId) {
-            const button = event.target;
-            button.disabled = true;
-            button.textContent = 'ДОБАВЛЕНИЕ...';
-            
-            fetch('/add_contact', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({contact_id: userId})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Ошибка при добавлении контакта');
-                    button.disabled = false;
-                    button.textContent = 'ДОБАВИТЬ';
-                }
-            })
-            .catch(error => {
-                alert('Ошибка сети');
-                button.disabled = false;
-                button.textContent = 'ДОБАВИТЬ';
-            });
-        }
-        
-        // Закрытие модального окна при клике вне его
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 event.target.classList.remove('active');
