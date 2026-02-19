@@ -141,4 +141,343 @@
             border-left: 3px solid #4CAF50;
         }
         
-       
+        .chat-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .chat-info {
+            flex: 1;
+        }
+        
+        .chat-name {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .chat-preview {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.9rem;
+            margin-top: 0.2rem;
+        }
+        
+        .chat-time {
+            color: rgba(255,255,255,0.3);
+            font-size: 0.8rem;
+        }
+        
+        .unread-badge {
+            background: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+        
+        .request-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .request-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+        
+        .request-info {
+            flex: 1;
+        }
+        
+        .request-name {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .request-email {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .request-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .accept-btn, .reject-btn {
+            border: none;
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .accept-btn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .accept-btn:hover {
+            background: #45a049;
+        }
+        
+        .reject-btn {
+            background: #f44336;
+            color: white;
+        }
+        
+        .reject-btn:hover {
+            background: #d32f2f;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #1a1e24;
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 400px;
+            width: 90%;
+            border: 1px solid #4CAF50;
+        }
+        
+        .modal-content h3 {
+            color: #4CAF50;
+            margin-bottom: 1rem;
+        }
+        
+        .modal-content input {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            background: #0a0c10;
+            border: 1px solid #4CAF50;
+            border-radius: 4px;
+            color: white;
+        }
+        
+        .modal-content button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .modal-content .cancel-btn {
+            background: #f44336;
+            margin-top: 0.5rem;
+        }
+        
+        .empty-message {
+            padding: 2rem;
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        @media (max-width: 768px) {
+            .messages-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/static/logo.png" alt="Logo">
+                <span>СПЕКТР ОБЩЕНИЯ</span>
+            </div>
+            <div class="nav-links">
+                <a href="/">ГЛАВНАЯ</a>
+                <a href="/messages">СООБЩЕНИЯ</a>
+                <a href="/obshchenie">ГРУППЫ</a>
+                <a href="/profile">ПРОФИЛЬ</a>
+                <a href="/terms">УСЛОВИЯ</a>
+                {% if user.is_admin %}
+                <a href="/admin">АДМИН</a>
+                {% endif %}
+                <a href="/vyhod">ВЫЙТИ</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <h1>СООБЩЕНИЯ</h1>
+        
+        <div class="messages-container">
+            <div class="chats-section">
+                <div class="section-header">
+                    <h2>Чаты</h2>
+                    <button class="add-friend-btn" onclick="showAddFriendModal()">+ ДОБАВИТЬ ДРУГА</button>
+                </div>
+                <div class="chat-list">
+                    {% if last_messages %}
+                        {% for item in last_messages %}
+                        <div class="chat-item {% if item.unread > 0 %}unread{% endif %}" onclick="location.href='/chat/{{ item.friend.id }}'">
+                            <img src="{{ item.friend.avatar }}" alt="Avatar" class="chat-avatar" onerror="this.src='/static/logo.png'">
+                            <div class="chat-info">
+                                <div class="chat-name">{{ item.friend.name }}</div>
+                                <div class="chat-preview">{{ item.last_message.content|truncate(30) }}</div>
+                            </div>
+                            <div class="chat-time">{{ item.last_message.timestamp.strftime('%H:%M') }}</div>
+                            {% if item.unread > 0 %}
+                            <div class="unread-badge">{{ item.unread }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-message">
+                            Нет чатов. Добавьте друга, чтобы начать общение
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="requests-section">
+                <h2>Заявки в друзья</h2>
+                <div class="requests-list">
+                    {% if incoming_requests %}
+                        <h3 style="color: #4CAF50; margin: 1rem 0;">Входящие</h3>
+                        {% for req in incoming_requests %}
+                        <div class="request-item">
+                            <img src="{{ req.sender.avatar }}" alt="Avatar" class="request-avatar" onerror="this.src='/static/logo.png'">
+                            <div class="request-info">
+                                <div class="request-name">{{ req.sender.name }}</div>
+                                <div class="request-email">{{ req.sender.email }}</div>
+                            </div>
+                            <div class="request-buttons">
+                                <button class="accept-btn" onclick="acceptRequest({{ req.id }})">✓</button>
+                                <button class="reject-btn" onclick="rejectRequest({{ req.id }})">✗</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    {% if outgoing_requests %}
+                        <h3 style="color: #4CAF50; margin: 1rem 0;">Исходящие</h3>
+                        {% for req in outgoing_requests %}
+                        <div class="request-item">
+                            <img src="{{ req.receiver.avatar }}" alt="Avatar" class="request-avatar" onerror="this.src='/static/logo.png'">
+                            <div class="request-info">
+                                <div class="request-name">{{ req.receiver.name }}</div>
+                                <div class="request-email">{{ req.receiver.email }}</div>
+                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.3);">Ожидание ответа</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    {% if not incoming_requests and not outgoing_requests %}
+                    <div class="empty-message">
+                        Нет заявок в друзья
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Модальное окно добавления друга -->
+    <div class="modal" id="addFriendModal">
+        <div class="modal-content">
+            <h3>Добавить друга</h3>
+            <input type="email" id="friendEmail" placeholder="Email пользователя">
+            <button onclick="sendFriendRequest()">ОТПРАВИТЬ ЗАЯВКУ</button>
+            <button class="cancel-btn" onclick="hideAddFriendModal()">ОТМЕНА</button>
+        </div>
+    </div>
+
+    <script>
+        function showAddFriendModal() {
+            document.getElementById('addFriendModal').classList.add('active');
+        }
+        
+        function hideAddFriendModal() {
+            document.getElementById('addFriendModal').classList.remove('active');
+        }
+        
+        function sendFriendRequest() {
+            const email = document.getElementById('friendEmail').value;
+            
+            if (!email) {
+                alert('Введите email');
+                return;
+            }
+            
+            fetch('/send_friend_request', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email: email})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Заявка отправлена');
+                    location.reload();
+                } else {
+                    alert('Пользователь не найден или уже в друзьях');
+                }
+            });
+        }
+        
+        function acceptRequest(requestId) {
+            fetch('/accept_friend_request/' + requestId, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+        
+        function rejectRequest(requestId) {
+            fetch('/reject_friend_request/' + requestId, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+        
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>
