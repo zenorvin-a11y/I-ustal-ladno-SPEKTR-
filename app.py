@@ -13,10 +13,13 @@ app.config['SECRET_KEY'] = 'spektr-super-secret-key-2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spektr.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/avatars'
+app.config['GROUP_UPLOAD_FOLDER'] = 'static/group_avatars'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 
+# Создаём папки для аватарок
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['GROUP_UPLOAD_FOLDER'], exist_ok=True)
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -47,14 +50,20 @@ class FriendRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    status = db.Column(db.String(20), default='pending')  # pending, accepted, rejected
+    status = db.Column(db.String(20), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    
+    sender = db.relationship('User', foreign_keys=[sender_id])
+    receiver = db.relationship('User', foreign_keys=[receiver_id])
 
 class Friend(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     friend_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    
+    user = db.relationship('User', foreign_keys=[user_id])
+    friend = db.relationship('User', foreign_keys=[friend_id])
 
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -75,6 +84,8 @@ class GroupMember(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'))
     is_admin = db.Column(db.Boolean, default=False)
     joined_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    
+    user = db.relationship('User', foreign_keys=[user_id])
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -196,7 +207,7 @@ def messages():
     
     # Получаем друзей
     friends = Friend.query.filter_by(user_id=current_user.id).all()
-    friend_users = [User.query.get(f.friend_id) for f in friends]
+    friend_users = [f.friend for f in friends]
     
     # Получаем входящие заявки
     incoming_requests = FriendRequest.query.filter_by(receiver_id=current_user.id, status='pending').all()
@@ -212,10 +223,16 @@ def messages():
             ((Message.sender_id == friend.id) & (Message.receiver_id == current_user.id))
         ).order_by(Message.timestamp.desc()).first()
         if last_msg:
+            unread_count = Message.query.filter_by(
+                sender_id=friend.id, 
+                receiver_id=current_user.id, 
+                is_read=False
+            ).count()
+            
             last_messages.append({
                 'friend': friend,
                 'last_message': last_msg,
-                'unread': Message.query.filter_by(sender_id=friend.id, receiver_id=current_user.id, is_read=False).count()
+                'unread': unread_count
             })
     
     return render_template('messages.html',
@@ -418,7 +435,7 @@ def update_group(group_id):
             ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
             if ext in app.config['ALLOWED_EXTENSIONS']:
                 filename = secure_filename(f"group_{group.id}_{file.filename}")
-                file.save(os.path.join('static/group_avatars', filename))
+                file.save(os.path.join(app.config['GROUP_UPLOAD_FOLDER'], filename))
                 group.avatar = f'/static/group_avatars/{filename}'
     
     db.session.commit()
