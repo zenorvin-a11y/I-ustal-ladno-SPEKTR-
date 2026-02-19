@@ -10,12 +10,6 @@ from flask_dance.consumer import oauth_authorized
 from werkzeug.utils import secure_filename
 from sqlalchemy import or_
 
-print("="*60)
-print("СПЕКТР ОБЩЕНИЯ - ФИНАЛЬНАЯ ВЕРСИЯ")
-print("="*60)
-print(f"Python версия: {sys.version}")
-print(f"Текущая директория: {os.getcwd()}")
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'spektr-super-secret-key-2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spektr.db'
@@ -25,7 +19,6 @@ app.config['GROUP_UPLOAD_FOLDER'] = 'static/group_avatars'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 
-# Создаём папки для аватарок
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['GROUP_UPLOAD_FOLDER'], exist_ok=True)
 
@@ -52,7 +45,7 @@ class User(UserMixin, db.Model):
     group_memberships = db.relationship('GroupMember', back_populates='user')
     sent_requests = db.relationship('FriendRequest', foreign_keys='FriendRequest.sender_id', back_populates='sender')
     received_requests = db.relationship('FriendRequest', foreign_keys='FriendRequest.receiver_id', back_populates='receiver')
-    friends = db.relationship('Friend', foreign_keys='Friend.user_id', back_populates='user')
+    friends_list = db.relationship('Friend', foreign_keys='Friend.user_id', back_populates='user')
 
 class FriendRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -70,7 +63,7 @@ class Friend(db.Model):
     friend_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
-    user = db.relationship('User', foreign_keys=[user_id], back_populates='friends')
+    user = db.relationship('User', foreign_keys=[user_id], back_populates='friends_list')
     friend = db.relationship('User', foreign_keys=[friend_id])
 
 class Group(db.Model):
@@ -117,12 +110,9 @@ class GroupMessage(db.Model):
     user = db.relationship('User', foreign_keys=[user_id])
     group = db.relationship('Group', foreign_keys=[group_id], back_populates='messages')
 
-# Создание таблиц
 with app.app_context():
     db.create_all()
-    print("✅ Таблицы созданы")
     
-    # Создаём админа если нет
     if not User.query.filter_by(is_admin=True).first():
         admin = User(
             email='admin@spektr.ru',
@@ -131,7 +121,6 @@ with app.app_context():
         )
         db.session.add(admin)
         db.session.commit()
-        print("✅ Админ создан")
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -149,7 +138,6 @@ if client_id and client_secret:
         redirect_to="glavnaya"
     )
     app.register_blueprint(google_bp, url_prefix="/login")
-    print("✅ Google OAuth настроен")
 
     @oauth_authorized.connect_via(google_bp)
     def google_logged_in(blueprint, token):
@@ -167,14 +155,12 @@ if client_id and client_secret:
                 )
                 db.session.add(user)
                 db.session.commit()
-                print(f"✅ Новый пользователь: {email}")
             
             if user.is_banned:
                 return "Ваш аккаунт заблокирован", 403
             
             login_user(user)
             session['user_id'] = user.id
-            print(f"✅ Вход: {email}")
 
 # ========== МАРШРУТЫ ==========
 @app.route('/')
@@ -221,7 +207,11 @@ def messages():
     
     # Получаем друзей
     friends = Friend.query.filter_by(user_id=current_user.id).all()
-    friend_users = [f.friend for f in friends]
+    friend_users = []
+    for f in friends:
+        user = User.query.get(f.friend_id)
+        if user:
+            friend_users.append(user)
     
     # Получаем заявки
     incoming_requests = FriendRequest.query.filter_by(receiver_id=current_user.id, status='pending').all()
@@ -260,6 +250,7 @@ def send_friend_request():
     if email:
         receiver = User.query.filter_by(email=email).first()
         if receiver and receiver.id != current_user.id:
+            # Проверяем существующую заявку
             existing = FriendRequest.query.filter_by(
                 sender_id=current_user.id,
                 receiver_id=receiver.id,
@@ -267,6 +258,7 @@ def send_friend_request():
             ).first()
             
             if not existing:
+                # Проверяем, не друзья ли уже
                 existing_friend = Friend.query.filter_by(
                     user_id=current_user.id,
                     friend_id=receiver.id
@@ -275,13 +267,20 @@ def send_friend_request():
                 if not existing_friend:
                     req = FriendRequest(
                         sender_id=current_user.id,
-                        receiver_id=receiver.id
+                        receiver_id=receiver.id,
+                        status='pending'
                     )
                     db.session.add(req)
                     db.session.commit()
-                    return jsonify({'success': True})
+                    return jsonify({'success': True, 'message': 'Заявка отправлена'})
+                else:
+                    return jsonify({'error': 'Уже в друзьях'}), 400
+            else:
+                return jsonify({'error': 'Заявка уже отправлена'}), 400
+        else:
+            return jsonify({'error': 'Пользователь не найден'}), 404
     
-    return jsonify({'error': 'User not found'}), 404
+    return jsonify({'error': 'Введите email'}), 400
 
 @app.route('/accept_friend_request/<int:request_id>', methods=['POST'])
 def accept_friend_request(request_id):
@@ -293,6 +292,7 @@ def accept_friend_request(request_id):
     if req.receiver_id == current_user.id:
         req.status = 'accepted'
         
+        # Добавляем в друзья обоим
         friend1 = Friend(user_id=current_user.id, friend_id=req.sender_id)
         friend2 = Friend(user_id=req.sender_id, friend_id=current_user.id)
         
@@ -387,6 +387,16 @@ def group_chat(group_id):
     messages = GroupMessage.query.filter_by(group_id=group_id).order_by(GroupMessage.timestamp).all()
     members = GroupMember.query.filter_by(group_id=group_id).all()
     
+    # Для участников
+    member_users = []
+    for m in members:
+        user = User.query.get(m.user_id)
+        if user:
+            member_users.append({
+                'user': user,
+                'is_admin': m.is_admin
+            })
+    
     all_users = []
     if membership.is_admin:
         existing_ids = [m.user_id for m in members]
@@ -399,7 +409,7 @@ def group_chat(group_id):
                           user=current_user,
                           group=group,
                           messages=messages,
-                          members=members,
+                          members=member_users,
                           all_users=all_users,
                           is_admin=membership.is_admin)
 
@@ -577,10 +587,6 @@ def vyhod():
     logout_user()
     session.clear()
     return redirect(url_for('glavnaya'))
-
-print("="*60)
-print("✅ ПРИЛОЖЕНИЕ ЗАПУЩЕНО")
-print("="*60)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
