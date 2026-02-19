@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Сообщения - Спектр Общения</title>
     <style>
         * {
@@ -20,8 +20,11 @@
         
         .navbar {
             background-color: #1a1e24;
-            padding: 1rem 2rem;
+            padding: 1rem;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
         
         .nav-container {
@@ -31,40 +34,43 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
+            gap: 0.5rem;
         }
         
         .logo {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.5rem;
         }
         
         .logo img {
-            height: 40px;
-            width: 40px;
+            height: 35px;
+            width: 35px;
             border-radius: 50%;
             object-fit: cover;
         }
         
         .logo span {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: bold;
             color: #4CAF50;
         }
         
         .nav-links {
             display: flex;
-            gap: 1rem;
+            gap: 0.5rem;
             align-items: center;
             flex-wrap: wrap;
+            justify-content: flex-end;
         }
         
         .nav-links a {
             text-decoration: none;
             color: white;
             font-weight: 500;
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.8rem;
             border-radius: 4px;
+            font-size: 0.9rem;
         }
         
         .nav-links a:hover {
@@ -73,152 +79,168 @@
         
         .main-content {
             max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 2rem;
+            margin: 1rem auto;
+            padding: 0 1rem;
         }
         
         h1 {
             color: #4CAF50;
-            margin-bottom: 2rem;
-            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
         }
         
         .messages-container {
             display: flex;
-            gap: 2rem;
-            flex-wrap: wrap;
+            gap: 1rem;
+            flex-direction: column;
+        }
+        
+        @media (min-width: 768px) {
+            .messages-container {
+                flex-direction: row;
+            }
         }
         
         .chats-section, .requests-section {
             flex: 1;
-            min-width: 300px;
+            min-width: 0;
         }
         
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
         
         .add-friend-btn {
             background: #4CAF50;
             color: white;
             border: none;
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.8rem;
             border-radius: 4px;
             cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .add-friend-btn:hover {
-            background: #45a049;
+            font-size: 0.9rem;
         }
         
         .chat-list, .requests-list {
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
-            padding: 1rem;
+            padding: 0.5rem;
             border: 1px solid rgba(76, 175, 80, 0.3);
         }
         
         .chat-item {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            padding: 1rem;
+            gap: 0.8rem;
+            padding: 0.8rem;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             cursor: pointer;
-            transition: all 0.3s ease;
         }
         
-        .chat-item:hover {
-            background: rgba(76, 175, 80, 0.1);
+        .chat-item:last-child {
+            border-bottom: none;
         }
         
         .chat-item.unread {
-            background: rgba(76, 175, 80, 0.2);
+            background: rgba(76, 175, 80, 0.15);
             border-left: 3px solid #4CAF50;
         }
         
         .chat-avatar {
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             object-fit: cover;
+            flex-shrink: 0;
         }
         
         .chat-info {
             flex: 1;
+            min-width: 0;
         }
         
         .chat-name {
             font-weight: bold;
             color: #4CAF50;
+            font-size: 0.95rem;
         }
         
         .chat-preview {
             color: rgba(255,255,255,0.5);
-            font-size: 0.9rem;
-            margin-top: 0.2rem;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .chat-time {
             color: rgba(255,255,255,0.3);
-            font-size: 0.8rem;
+            font-size: 0.7rem;
+            flex-shrink: 0;
         }
         
         .unread-badge {
             background: #4CAF50;
             color: white;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
+            flex-shrink: 0;
         }
         
         .request-item {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            padding: 1rem;
+            gap: 0.8rem;
+            padding: 0.8rem;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+            flex-wrap: wrap;
         }
         
         .request-avatar {
-            width: 40px;
-            height: 40px;
+            width: 35px;
+            height: 35px;
             border-radius: 50%;
+            flex-shrink: 0;
         }
         
         .request-info {
             flex: 1;
+            min-width: 0;
         }
         
         .request-name {
             font-weight: bold;
             color: #4CAF50;
+            font-size: 0.9rem;
         }
         
         .request-email {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             color: rgba(255,255,255,0.5);
+            word-break: break-all;
         }
         
         .request-buttons {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.3rem;
+            flex-shrink: 0;
         }
         
         .accept-btn, .reject-btn {
             border: none;
-            padding: 0.3rem 0.8rem;
+            padding: 0.3rem 0.6rem;
             border-radius: 4px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            font-size: 0.8rem;
         }
         
         .accept-btn {
@@ -226,17 +248,9 @@
             color: white;
         }
         
-        .accept-btn:hover {
-            background: #45a049;
-        }
-        
         .reject-btn {
             background: #f44336;
             color: white;
-        }
-        
-        .reject-btn:hover {
-            background: #d32f2f;
         }
         
         .modal {
@@ -246,10 +260,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.9);
             z-index: 2000;
             align-items: center;
             justify-content: center;
+            padding: 1rem;
         }
         
         .modal.active {
@@ -258,53 +273,51 @@
         
         .modal-content {
             background: #1a1e24;
-            padding: 2rem;
+            padding: 1.5rem;
             border-radius: 10px;
             max-width: 400px;
-            width: 90%;
+            width: 100%;
             border: 1px solid #4CAF50;
         }
         
         .modal-content h3 {
             color: #4CAF50;
             margin-bottom: 1rem;
+            font-size: 1.3rem;
         }
         
         .modal-content input {
             width: 100%;
-            padding: 0.8rem;
+            padding: 0.7rem;
             margin-bottom: 1rem;
             background: #0a0c10;
             border: 1px solid #4CAF50;
             border-radius: 4px;
             color: white;
+            font-size: 1rem;
         }
         
         .modal-content button {
             background: #4CAF50;
             color: white;
             border: none;
-            padding: 0.8rem;
+            padding: 0.7rem;
             border-radius: 4px;
             cursor: pointer;
             width: 100%;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
         }
         
         .modal-content .cancel-btn {
             background: #f44336;
-            margin-top: 0.5rem;
         }
         
         .empty-message {
-            padding: 2rem;
+            padding: 1.5rem;
             text-align: center;
             color: rgba(255,255,255,0.5);
-        }
-        
-        @media (max-width: 768px) {
-            .messages-container {
-                flex-direction: column;
-            }
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -313,17 +326,13 @@
         <div class="nav-container">
             <div class="logo">
                 <img src="/static/logo.png" alt="Logo">
-                <span>СПЕКТР ОБЩЕНИЯ</span>
+                <span>СПЕКТР</span>
             </div>
             <div class="nav-links">
                 <a href="/">ГЛАВНАЯ</a>
-                <a href="/messages">СООБЩЕНИЯ</a>
+                <a href="/messages">ЧАТЫ</a>
                 <a href="/obshchenie">ГРУППЫ</a>
                 <a href="/profile">ПРОФИЛЬ</a>
-                <a href="/terms">УСЛОВИЯ</a>
-                {% if user.is_admin %}
-                <a href="/admin">АДМИН</a>
-                {% endif %}
                 <a href="/vyhod">ВЫЙТИ</a>
             </div>
         </div>
@@ -336,7 +345,7 @@
             <div class="chats-section">
                 <div class="section-header">
                     <h2>Чаты</h2>
-                    <button class="add-friend-btn" onclick="showAddFriendModal()">+ ДОБАВИТЬ ДРУГА</button>
+                    <button class="add-friend-btn" onclick="showAddFriendModal()">+ ДОБАВИТЬ</button>
                 </div>
                 <div class="chat-list">
                     {% if last_messages %}
@@ -362,10 +371,10 @@
             </div>
             
             <div class="requests-section">
-                <h2>Заявки в друзья</h2>
+                <h2>Заявки</h2>
                 <div class="requests-list">
                     {% if incoming_requests %}
-                        <h3 style="color: #4CAF50; margin: 1rem 0;">Входящие</h3>
+                        <h3 style="color: #4CAF50; margin: 0.5rem 0; font-size: 0.9rem;">Входящие</h3>
                         {% for req in incoming_requests %}
                         <div class="request-item">
                             <img src="{{ req.sender.avatar }}" alt="Avatar" class="request-avatar" onerror="this.src='/static/logo.png'">
@@ -382,14 +391,14 @@
                     {% endif %}
                     
                     {% if outgoing_requests %}
-                        <h3 style="color: #4CAF50; margin: 1rem 0;">Исходящие</h3>
+                        <h3 style="color: #4CAF50; margin: 0.5rem 0; font-size: 0.9rem;">Исходящие</h3>
                         {% for req in outgoing_requests %}
                         <div class="request-item">
                             <img src="{{ req.receiver.avatar }}" alt="Avatar" class="request-avatar" onerror="this.src='/static/logo.png'">
                             <div class="request-info">
                                 <div class="request-name">{{ req.receiver.name }}</div>
                                 <div class="request-email">{{ req.receiver.email }}</div>
-                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.3);">Ожидание ответа</div>
+                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.3);">Ожидание</div>
                             </div>
                         </div>
                         {% endfor %}
@@ -410,7 +419,7 @@
         <div class="modal-content">
             <h3>Добавить друга</h3>
             <input type="email" id="friendEmail" placeholder="Email пользователя">
-            <button onclick="sendFriendRequest()">ОТПРАВИТЬ ЗАЯВКУ</button>
+            <button onclick="sendFriendRequest()">ОТПРАВИТЬ</button>
             <button class="cancel-btn" onclick="hideAddFriendModal()">ОТМЕНА</button>
         </div>
     </div>
