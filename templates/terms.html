@@ -43,7 +43,6 @@
             height: 40px;
             width: 40px;
             border-radius: 50%;
-            object-fit: cover;
         }
         
         .logo span {
@@ -65,10 +64,12 @@
             font-weight: 500;
             padding: 0.5rem 1rem;
             border-radius: 4px;
+            transition: all 0.3s ease;
         }
         
         .nav-links a:hover {
             background-color: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
         }
         
         .main-content {
@@ -126,10 +127,18 @@
             </div>
             <div class="nav-links">
                 <a href="/">ГЛАВНАЯ</a>
+                {% if user and not user.is_banned %}
+                <a href="/messages">СООБЩЕНИЯ</a>
+                <a href="/obshchenie">ГРУППЫ</a>
                 <a href="/profile">ПРОФИЛЬ</a>
-                <a href="/groups">ГРУППЫ</a>
-                <a href="/terms">УСЛОВИЯ</a>
+                {% if user.is_admin %}
+                <a href="/admin">АДМИН</a>
+                {% endif %}
                 <a href="/vyhod">ВЫЙТИ</a>
+                {% else %}
+                <a href="/">НА ГЛАВНУЮ</a>
+                <a href="/login/google">ВОЙТИ</a>
+                {% endif %}
             </div>
         </div>
     </nav>
