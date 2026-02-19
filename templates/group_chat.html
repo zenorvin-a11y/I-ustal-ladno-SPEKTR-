@@ -75,12 +75,6 @@
             display: flex;
             gap: 2rem;
             padding: 0 2rem;
-            animation: fadeIn 0.8s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
         }
         
         .chat-main {
@@ -101,16 +95,16 @@
             align-items: center;
         }
         
-        .chat-header h2 {
+        .chat-header-left h2 {
             color: #4CAF50;
         }
         
-        .chat-header p {
+        .chat-header-left p {
             color: rgba(255,255,255,0.7);
             font-size: 0.9rem;
         }
         
-        .add-member-btn {
+        .settings-btn {
             background: #4CAF50;
             color: white;
             border: none;
@@ -120,10 +114,8 @@
             transition: all 0.3s ease;
         }
         
-        .add-member-btn:hover {
+        .settings-btn:hover {
             background: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
         }
         
         .messages {
@@ -140,12 +132,6 @@
             padding: 0.8rem;
             border-radius: 8px;
             background: rgba(255,255,255,0.1);
-            animation: messageIn 0.3s ease;
-        }
-        
-        @keyframes messageIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
         }
         
         .message.own {
@@ -187,13 +173,6 @@
             border: 1px solid #4CAF50;
             border-radius: 4px;
             color: white;
-            transition: all 0.3s ease;
-        }
-        
-        .input-area input:focus {
-            outline: none;
-            border-color: #45a049;
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
         }
         
         .input-area button {
@@ -203,20 +182,6 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .input-area button:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
-        }
-        
-        .input-area button:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
         }
         
         .members-sidebar {
@@ -238,35 +203,12 @@
             gap: 0.5rem;
             padding: 0.5rem;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            transition: background 0.3s ease;
-            animation: memberIn 0.5s ease;
-            animation-fill-mode: both;
-        }
-        
-        @keyframes memberIn {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        
-        .member-item:nth-child(2) { animation-delay: 0.1s; }
-        .member-item:nth-child(3) { animation-delay: 0.2s; }
-        .member-item:nth-child(4) { animation-delay: 0.3s; }
-        .member-item:nth-child(5) { animation-delay: 0.4s; }
-        .member-item:nth-child(6) { animation-delay: 0.5s; }
-        
-        .member-item:hover {
-            background: rgba(76, 175, 80, 0.1);
         }
         
         .member-avatar {
             width: 30px;
             height: 30px;
             border-radius: 50%;
-            transition: transform 0.3s ease;
-        }
-        
-        .member-item:hover .member-avatar {
-            transform: scale(1.1);
         }
         
         .member-name {
@@ -286,12 +228,6 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.8rem;
-            transition: all 0.3s ease;
-        }
-        
-        .remove-btn:hover {
-            background: #d32f2f;
-            transform: scale(1.1);
         }
         
         .modal {
@@ -305,13 +241,10 @@
             z-index: 2000;
             align-items: center;
             justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
         }
         
         .modal.active {
             display: flex;
-            opacity: 1;
         }
         
         .modal-content {
@@ -321,12 +254,6 @@
             max-width: 500px;
             width: 90%;
             border: 1px solid #4CAF50;
-            transform: scale(0.7);
-            transition: transform 0.3s ease;
-        }
-        
-        .modal.active .modal-content {
-            transform: scale(1);
         }
         
         .modal-content h3 {
@@ -334,63 +261,42 @@
             margin-bottom: 1rem;
         }
         
-        .users-list {
-            max-height: 300px;
-            overflow-y: auto;
+        .modal-content input,
+        .modal-content textarea {
+            width: 100%;
+            padding: 0.8rem;
             margin-bottom: 1rem;
+            background: #0a0c10;
+            border: 1px solid #4CAF50;
+            border-radius: 4px;
+            color: white;
         }
         
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            transition: background 0.3s ease;
-        }
-        
-        .user-item:hover {
-            background: rgba(76, 175, 80, 0.1);
-        }
-        
-        .user-avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-        }
-        
-        .user-name {
-            flex: 1;
-        }
-        
-        .select-btn {
+        .modal-content button {
             background: #4CAF50;
             color: white;
             border: none;
-            padding: 0.3rem 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .select-btn:hover {
-            background: #45a049;
-            transform: scale(1.05);
-        }
-        
-        .cancel-btn {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 0.5rem;
+            padding: 0.8rem;
             border-radius: 4px;
             cursor: pointer;
             width: 100%;
-            transition: all 0.3s ease;
+            margin-bottom: 0.5rem;
         }
         
-        .cancel-btn:hover {
-            background: #d32f2f;
+        .modal-content .cancel-btn {
+            background: #f44336;
+        }
+        
+        .modal-content input[type="file"] {
+            padding: 0.3rem;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
         }
         
         @media (max-width: 768px) {
@@ -414,9 +320,13 @@
             </div>
             <div class="nav-links">
                 <a href="/">ГЛАВНАЯ</a>
-                <a href="/obshchenie">ОБЩЕНИЕ</a>
+                <a href="/messages">СООБЩЕНИЯ</a>
+                <a href="/obshchenie">ГРУППЫ</a>
                 <a href="/profile">ПРОФИЛЬ</a>
                 <a href="/terms">УСЛОВИЯ</a>
+                {% if user.is_admin %}
+                <a href="/admin">АДМИН</a>
+                {% endif %}
                 <a href="/vyhod">ВЫЙТИ</a>
             </div>
         </div>
@@ -425,12 +335,12 @@
     <div class="chat-container">
         <div class="chat-main">
             <div class="chat-header">
-                <div>
+                <div class="chat-header-left">
                     <h2>{{ group.name }}</h2>
                     <p>{{ group.description }}</p>
                 </div>
                 {% if is_admin %}
-                <button class="add-member-btn" onclick="showAddMemberModal()">+ ДОБАВИТЬ УЧАСТНИКА</button>
+                <button class="settings-btn" onclick="showGroupSettings()">НАСТРОЙКИ</button>
                 {% endif %}
             </div>
             
@@ -466,6 +376,31 @@
                 {% endif %}
             </div>
             {% endfor %}
+            
+            {% if is_admin %}
+            <button class="settings-btn" onclick="showAddMemberModal()" style="width: 100%; margin-top: 1rem;">+ ДОБАВИТЬ УЧАСТНИКА</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Модальное окно настроек группы -->
+    <div class="modal" id="groupSettingsModal">
+        <div class="modal-content">
+            <h3>Настройки группы</h3>
+            <form action="/update_group/{{ group.id }}" method="post" enctype="multipart/form-data">
+                <input type="text" name="name" value="{{ group.name }}" required>
+                <textarea name="description" rows="3">{{ group.description }}</textarea>
+                
+                <label class="checkbox-label">
+                    <input type="checkbox" name="is_public" {% if group.is_public %}checked{% endif %}>
+                    Публичная группа (могут вступать все)
+                </label>
+                
+                <input type="file" name="avatar" accept="image/*">
+                
+                <button type="submit">СОХРАНИТЬ</button>
+                <button type="button" class="cancel-btn" onclick="hideGroupSettings()">ОТМЕНА</button>
+            </form>
         </div>
     </div>
 
@@ -474,19 +409,17 @@
         <div class="modal-content">
             <h3>Добавить участника</h3>
             {% if all_users %}
-            <div class="users-list">
+            <div style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem;">
                 {% for user in all_users %}
-                <div class="user-item">
-                    <img src="{{ user.avatar }}" alt="Avatar" class="user-avatar" onerror="this.src='/static/logo.png'">
-                    <span class="user-name">{{ user.name }}</span>
-                    <button class="select-btn" onclick="addToGroup({{ user.id }})">ДОБАВИТЬ</button>
+                <div style="display: flex; align-items: center; gap: 1rem; padding: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <img src="{{ user.avatar }}" alt="Avatar" style="width: 30px; height: 30px; border-radius: 50%;">
+                    <span style="flex: 1;">{{ user.name }}</span>
+                    <button onclick="addToGroup({{ user.id }})" style="background: #4CAF50; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 4px; cursor: pointer;">ДОБАВИТЬ</button>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <div style="text-align: center; padding: 1rem; color: rgba(255,255,255,0.5);">
-                Нет пользователей для добавления
-            </div>
+            <p style="text-align: center; color: rgba(255,255,255,0.5);">Нет пользователей для добавления</p>
             {% endif %}
             <button class="cancel-btn" onclick="hideAddMemberModal()">ЗАКРЫТЬ</button>
         </div>
@@ -505,7 +438,6 @@
             
             if (!content || isSending) return;
             
-            // Блокируем кнопку
             isSending = true;
             sendButton.disabled = true;
             
@@ -520,7 +452,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Добавляем сообщение на страницу без перезагрузки
                     const messageDiv = document.createElement('div');
                     messageDiv.className = 'message own';
                     messageDiv.innerHTML = `
@@ -533,15 +464,9 @@
                     messagesDiv.appendChild(messageDiv);
                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
                     messageInput.value = '';
-                } else {
-                    alert('Ошибка при отправке');
                 }
             })
-            .catch(error => {
-                alert('Ошибка сети');
-            })
             .finally(() => {
-                // Разблокируем кнопку
                 isSending = false;
                 sendButton.disabled = false;
             });
@@ -554,6 +479,14 @@
             }
         }
         
+        function showGroupSettings() {
+            document.getElementById('groupSettingsModal').classList.add('active');
+        }
+        
+        function hideGroupSettings() {
+            document.getElementById('groupSettingsModal').classList.remove('active');
+        }
+        
         function showAddMemberModal() {
             document.getElementById('addMemberModal').classList.add('active');
         }
@@ -563,10 +496,6 @@
         }
         
         function addToGroup(userId) {
-            const button = event.target;
-            button.disabled = true;
-            button.textContent = '...';
-            
             fetch('/add_to_group', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -579,16 +508,7 @@
             .then(data => {
                 if (data.success) {
                     location.reload();
-                } else {
-                    alert('Ошибка при добавлении');
-                    button.disabled = false;
-                    button.textContent = 'ДОБАВИТЬ';
                 }
-            })
-            .catch(error => {
-                alert('Ошибка сети');
-                button.disabled = false;
-                button.textContent = 'ДОБАВИТЬ';
             });
         }
         
@@ -606,30 +526,11 @@
                 .then(data => {
                     if (data.success) {
                         location.reload();
-                    } else {
-                        alert('Ошибка при удалении');
                     }
                 });
             }
         }
         
-        // Автоматическое обновление сообщений
-        let lastMessageCount = {{ messages|length }};
-        
-        function checkNewMessages() {
-            fetch(`/group/{{ group.id }}/messages`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.count > lastMessageCount) {
-                        location.reload();
-                    }
-                });
-        }
-        
-        // Проверяем новые сообщения каждые 5 секунд
-        setInterval(checkNewMessages, 5000);
-        
-        // Закрытие модального окна при клике вне его
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 event.target.classList.remove('active');
