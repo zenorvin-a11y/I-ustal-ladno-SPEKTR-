@@ -9,59 +9,63 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0c10 0%, #1a1e24 100%);
+            background: #0a0c10;
             color: white;
             min-height: 100vh;
         }
         
         .navbar {
-            background-color: #1a1e24;
-            padding: 1rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            background: #1a1e24;
+            padding: 0.8rem 1rem;
             position: sticky;
             top: 0;
             z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
         
         .nav-container {
-            max-width: 1400px;
-            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 0.5rem;
+            max-width: 100%;
         }
         
         .logo {
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            flex-shrink: 0;
         }
         
         .logo img {
-            height: 35px;
-            width: 35px;
+            height: 32px;
+            width: 32px;
             border-radius: 50%;
             object-fit: cover;
         }
         
         .logo span {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: bold;
             color: #4CAF50;
         }
         
         .nav-links {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.3rem;
             align-items: center;
-            flex-wrap: wrap;
-            justify-content: flex-end;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 0.2rem;
+        }
+        
+        .nav-links::-webkit-scrollbar {
+            display: none;
         }
         
         .nav-links a {
@@ -69,65 +73,67 @@
             color: white;
             font-weight: 500;
             padding: 0.4rem 0.8rem;
-            border-radius: 4px;
-            font-size: 0.9rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            background: rgba(255,255,255,0.1);
         }
         
         .nav-links a:hover {
-            background-color: rgba(76, 175, 80, 0.2);
+            background: rgba(76, 175, 80, 0.3);
         }
         
         .main-content {
-            max-width: 1400px;
-            margin: 1rem auto;
-            padding: 0 1rem;
+            max-width: 100%;
+            margin: 1rem 0.5rem;
+            padding: 0;
         }
         
         h1 {
             color: #4CAF50;
             margin-bottom: 1rem;
-            font-size: 1.8rem;
+            font-size: 1.5rem;
+            padding: 0 0.5rem;
         }
         
         .messages-container {
             display: flex;
-            gap: 1rem;
             flex-direction: column;
-        }
-        
-        @media (min-width: 768px) {
-            .messages-container {
-                flex-direction: row;
-            }
+            gap: 1rem;
         }
         
         .chats-section, .requests-section {
-            flex: 1;
-            min-width: 0;
+            width: 100%;
+            padding: 0 0.5rem;
         }
         
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
+            margin-bottom: 0.8rem;
+        }
+        
+        .section-header h2 {
+            color: #4CAF50;
+            font-size: 1.2rem;
         }
         
         .add-friend-btn {
             background: #4CAF50;
             color: white;
             border: none;
-            padding: 0.4rem 0.8rem;
-            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
             cursor: pointer;
             font-size: 0.9rem;
+            font-weight: bold;
+            white-space: nowrap;
         }
         
         .chat-list, .requests-list {
             background: rgba(255,255,255,0.05);
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 0.5rem;
             border: 1px solid rgba(76, 175, 80, 0.3);
         }
@@ -147,12 +153,12 @@
         
         .chat-item.unread {
             background: rgba(76, 175, 80, 0.15);
-            border-left: 3px solid #4CAF50;
+            border-radius: 8px;
         }
         
         .chat-avatar {
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             object-fit: cover;
             flex-shrink: 0;
@@ -166,7 +172,10 @@
         .chat-name {
             font-weight: bold;
             color: #4CAF50;
-            font-size: 0.95rem;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .chat-preview {
@@ -175,6 +184,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-top: 0.2rem;
         }
         
         .chat-time {
@@ -187,8 +197,8 @@
             background: #4CAF50;
             color: white;
             border-radius: 50%;
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -202,12 +212,11 @@
             gap: 0.8rem;
             padding: 0.8rem;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            flex-wrap: wrap;
         }
         
         .request-avatar {
-            width: 35px;
-            height: 35px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             flex-shrink: 0;
         }
@@ -220,27 +229,33 @@
         .request-name {
             font-weight: bold;
             color: #4CAF50;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .request-email {
             font-size: 0.7rem;
             color: rgba(255,255,255,0.5);
-            word-break: break-all;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .request-buttons {
             display: flex;
-            gap: 0.3rem;
+            gap: 0.5rem;
             flex-shrink: 0;
         }
         
         .accept-btn, .reject-btn {
             border: none;
-            padding: 0.3rem 0.6rem;
-            border-radius: 4px;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
             cursor: pointer;
             font-size: 0.8rem;
+            font-weight: bold;
         }
         
         .accept-btn {
@@ -260,7 +275,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
             z-index: 2000;
             align-items: center;
             justify-content: center;
@@ -274,25 +289,26 @@
         .modal-content {
             background: #1a1e24;
             padding: 1.5rem;
-            border-radius: 10px;
+            border-radius: 16px;
             max-width: 400px;
             width: 100%;
-            border: 1px solid #4CAF50;
+            border: 2px solid #4CAF50;
         }
         
         .modal-content h3 {
             color: #4CAF50;
             margin-bottom: 1rem;
             font-size: 1.3rem;
+            text-align: center;
         }
         
         .modal-content input {
             width: 100%;
-            padding: 0.7rem;
+            padding: 0.8rem;
             margin-bottom: 1rem;
             background: #0a0c10;
             border: 1px solid #4CAF50;
-            border-radius: 4px;
+            border-radius: 8px;
             color: white;
             font-size: 1rem;
         }
@@ -301,12 +317,13 @@
             background: #4CAF50;
             color: white;
             border: none;
-            padding: 0.7rem;
-            border-radius: 4px;
+            padding: 0.8rem;
+            border-radius: 8px;
             cursor: pointer;
             width: 100%;
             margin-bottom: 0.5rem;
             font-size: 1rem;
+            font-weight: bold;
         }
         
         .modal-content .cancel-btn {
@@ -314,10 +331,41 @@
         }
         
         .empty-message {
-            padding: 1.5rem;
+            padding: 2rem;
             text-align: center;
             color: rgba(255,255,255,0.5);
             font-size: 0.9rem;
+        }
+        
+        .section-title {
+            color: #4CAF50;
+            font-size: 1rem;
+            margin: 1rem 0 0.5rem;
+            padding: 0 0.5rem;
+        }
+        
+        @media (min-width: 768px) {
+            .main-content {
+                max-width: 1000px;
+                margin: 2rem auto;
+                padding: 0 2rem;
+            }
+            
+            .messages-container {
+                flex-direction: row;
+            }
+            
+            .chats-section, .requests-section {
+                width: 50%;
+            }
+            
+            .nav-links a {
+                font-size: 1rem;
+            }
+            
+            .logo span {
+                font-size: 1.3rem;
+            }
         }
     </style>
 </head>
@@ -329,11 +377,11 @@
                 <span>СПЕКТР</span>
             </div>
             <div class="nav-links">
-                <a href="/">ГЛАВНАЯ</a>
-                <a href="/messages">ЧАТЫ</a>
-                <a href="/obshchenie">ГРУППЫ</a>
-                <a href="/profile">ПРОФИЛЬ</a>
-                <a href="/vyhod">ВЫЙТИ</a>
+                <a href="/">🏠</a>
+                <a href="/messages">💬</a>
+                <a href="/obshchenie">👥</a>
+                <a href="/profile">👤</a>
+                <a href="/vyhod">🚪</a>
             </div>
         </div>
     </nav>
@@ -345,7 +393,7 @@
             <div class="chats-section">
                 <div class="section-header">
                     <h2>Чаты</h2>
-                    <button class="add-friend-btn" onclick="showAddFriendModal()">+ ДОБАВИТЬ</button>
+                    <button class="add-friend-btn" onclick="showAddFriendModal()">+ Друг</button>
                 </div>
                 <div class="chat-list">
                     {% if last_messages %}
@@ -364,7 +412,7 @@
                         {% endfor %}
                     {% else %}
                         <div class="empty-message">
-                            Нет чатов. Добавьте друга, чтобы начать общение
+                            Нет чатов<br>Добавьте друга
                         </div>
                     {% endif %}
                 </div>
@@ -374,7 +422,7 @@
                 <h2>Заявки</h2>
                 <div class="requests-list">
                     {% if incoming_requests %}
-                        <h3 style="color: #4CAF50; margin: 0.5rem 0; font-size: 0.9rem;">Входящие</h3>
+                        <div class="section-title">Входящие</div>
                         {% for req in incoming_requests %}
                         <div class="request-item">
                             <img src="{{ req.sender.avatar }}" alt="Avatar" class="request-avatar" onerror="this.src='/static/logo.png'">
@@ -391,14 +439,14 @@
                     {% endif %}
                     
                     {% if outgoing_requests %}
-                        <h3 style="color: #4CAF50; margin: 0.5rem 0; font-size: 0.9rem;">Исходящие</h3>
+                        <div class="section-title">Исходящие</div>
                         {% for req in outgoing_requests %}
                         <div class="request-item">
                             <img src="{{ req.receiver.avatar }}" alt="Avatar" class="request-avatar" onerror="this.src='/static/logo.png'">
                             <div class="request-info">
                                 <div class="request-name">{{ req.receiver.name }}</div>
                                 <div class="request-email">{{ req.receiver.email }}</div>
-                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.3);">Ожидание</div>
+                                <div style="font-size: 0.7rem; color: #ffc107;">⏳</div>
                             </div>
                         </div>
                         {% endfor %}
@@ -406,7 +454,7 @@
                     
                     {% if not incoming_requests and not outgoing_requests %}
                     <div class="empty-message">
-                        Нет заявок в друзья
+                        Нет заявок
                     </div>
                     {% endif %}
                 </div>
@@ -417,7 +465,7 @@
     <!-- Модальное окно добавления друга -->
     <div class="modal" id="addFriendModal">
         <div class="modal-content">
-            <h3>Добавить друга</h3>
+            <h3>➕ Добавить друга</h3>
             <input type="email" id="friendEmail" placeholder="Email пользователя">
             <button onclick="sendFriendRequest()">ОТПРАВИТЬ</button>
             <button class="cancel-btn" onclick="hideAddFriendModal()">ОТМЕНА</button>
@@ -431,15 +479,21 @@
         
         function hideAddFriendModal() {
             document.getElementById('addFriendModal').classList.remove('active');
+            document.getElementById('friendEmail').value = '';
         }
         
         function sendFriendRequest() {
-            const email = document.getElementById('friendEmail').value;
+            const email = document.getElementById('friendEmail').value.trim();
             
             if (!email) {
                 alert('Введите email');
                 return;
             }
+            
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '⏳';
+            button.disabled = true;
             
             fetch('/send_friend_request', {
                 method: 'POST',
@@ -449,39 +503,37 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Заявка отправлена');
+                    alert('✅ Заявка отправлена');
                     location.reload();
                 } else {
-                    alert('Пользователь не найден или уже в друзьях');
+                    alert('❌ ' + (data.error || 'Ошибка'));
+                    button.textContent = originalText;
+                    button.disabled = false;
                 }
+            })
+            .catch(error => {
+                alert('❌ Ошибка сети');
+                button.textContent = originalText;
+                button.disabled = false;
             });
         }
         
         function acceptRequest(requestId) {
-            fetch('/accept_friend_request/' + requestId, {
-                method: 'POST'
-            })
+            fetch('/accept_friend_request/' + requestId, {method: 'POST'})
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    location.reload();
-                }
+                if (data.success) location.reload();
             });
         }
         
         function rejectRequest(requestId) {
-            fetch('/reject_friend_request/' + requestId, {
-                method: 'POST'
-            })
+            fetch('/reject_friend_request/' + requestId, {method: 'POST'})
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    location.reload();
-                }
+                if (data.success) location.reload();
             });
         }
         
-        // Закрытие модального окна при клике вне его
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 event.target.classList.remove('active');
