@@ -31,18 +31,29 @@ class User(UserMixin, db.Model):
     theme = db.Column(db.String(20), default='dark')
     notifications = db.Column(db.Boolean, default=True)
     sound = db.Column(db.Boolean, default=True)
+    is_banned = db.Column(db.Boolean, default=False)
+    ban_reason = db.Column(db.String(200))
+    is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy=True)
     received_messages = db.relationship('Message', foreign_keys='Message.receiver_id', backref='receiver', lazy=True)
     group_memberships = db.relationship('GroupMember', backref='user', lazy=True)
-    contacts = db.relationship('Contact', foreign_keys='Contact.user_id', backref='user', lazy=True)
-    added_by = db.relationship('Contact', foreign_keys='Contact.contact_id', backref='contact', lazy=True)
+    sent_requests = db.relationship('FriendRequest', foreign_keys='FriendRequest.sender_id', backref='sender', lazy=True)
+    received_requests = db.relationship('FriendRequest', foreign_keys='FriendRequest.receiver_id', backref='receiver', lazy=True)
+    friends = db.relationship('Friend', foreign_keys='Friend.user_id', backref='user', lazy=True)
 
-class Contact(db.Model):
+class FriendRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    status = db.Column(db.String(20), default='pending')  # pending, accepted, rejected
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+class Friend(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    contact_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    friend_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 class Group(db.Model):
@@ -52,6 +63,7 @@ class Group(db.Model):
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     avatar = db.Column(db.String(200), default='/static/group.png')
+    is_public = db.Column(db.Boolean, default=True)
     
     creator = db.relationship('User', foreign_keys=[creator_id])
     members = db.relationship('GroupMember', backref='group', lazy=True)
@@ -83,6 +95,16 @@ class GroupMessage(db.Model):
 
 with app.app_context():
     db.create_all()
+    
+    # Создаём админа если нет
+    if not User.query.filter_by(is_admin=True).first():
+        admin = User(
+            email='admin@spektr.ru',
+            name='Admin',
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -118,12 +140,18 @@ if client_id and client_secret:
                 db.session.add(user)
                 db.session.commit()
             
+            if user.is_banned:
+                return "Ваш аккаунт заблокирован. Причина: " + user.ban_reason, 403
+            
             login_user(user)
             session['user_id'] = user.id
 
 # ========== МАРШРУТЫ ==========
 @app.route('/')
 def glavnaya():
+    if current_user.is_authenticated and current_user.is_banned:
+        logout_user()
+        return render_template('glavnaya.html', user=None, banned=True)
     return render_template('glavnaya.html', user=current_user if current_user.is_authenticated else None)
 
 @app.route('/profile')
@@ -160,47 +188,117 @@ def update_profile():
     
     return redirect(url_for('profile'))
 
-@app.route('/obshchenie')
-def obshchenie():
+@app.route('/messages')
+def messages():
+    """Вкладка Сообщения"""
     if not current_user.is_authenticated:
         return redirect(url_for('glavnaya'))
     
-    groups = Group.query.all()
+    # Получаем друзей
+    friends = Friend.query.filter_by(user_id=current_user.id).all()
+    friend_users = [User.query.get(f.friend_id) for f in friends]
     
-    # Получаем контакты
-    contacts = Contact.query.filter_by(user_id=current_user.id).all()
-    contact_users = [User.query.get(c.contact_id) for c in contacts]
+    # Получаем входящие заявки
+    incoming_requests = FriendRequest.query.filter_by(receiver_id=current_user.id, status='pending').all()
     
-    # Получаем всех пользователей (для добавления), исключая себя и уже добавленных
-    existing_contact_ids = [c.contact_id for c in contacts]
-    all_users = User.query.filter(
-        User.id != current_user.id,
-        ~User.id.in_(existing_contact_ids) if existing_contact_ids else True
-    ).all()
+    # Получаем исходящие заявки
+    outgoing_requests = FriendRequest.query.filter_by(sender_id=current_user.id, status='pending').all()
     
-    return render_template('obshchenie.html', 
-                          user=current_user, 
-                          groups=groups, 
-                          contacts=contact_users,
-                          all_users=all_users)
+    # Получаем последние сообщения
+    last_messages = []
+    for friend in friend_users:
+        last_msg = Message.query.filter(
+            ((Message.sender_id == current_user.id) & (Message.receiver_id == friend.id)) |
+            ((Message.sender_id == friend.id) & (Message.receiver_id == current_user.id))
+        ).order_by(Message.timestamp.desc()).first()
+        if last_msg:
+            last_messages.append({
+                'friend': friend,
+                'last_message': last_msg,
+                'unread': Message.query.filter_by(sender_id=friend.id, receiver_id=current_user.id, is_read=False).count()
+            })
+    
+    return render_template('messages.html',
+                          user=current_user,
+                          friends=friend_users,
+                          incoming_requests=incoming_requests,
+                          outgoing_requests=outgoing_requests,
+                          last_messages=last_messages)
 
-@app.route('/add_contact', methods=['POST'])
-def add_contact():
+@app.route('/send_friend_request', methods=['POST'])
+def send_friend_request():
+    """Отправка заявки в друзья"""
     if not current_user.is_authenticated:
         return jsonify({'error': 'Not logged in'}), 401
     
     data = request.json
-    contact_id = data.get('contact_id')
+    email = data.get('email')
     
-    if contact_id:
-        existing = Contact.query.filter_by(user_id=current_user.id, contact_id=contact_id).first()
-        if not existing:
-            contact = Contact(user_id=current_user.id, contact_id=contact_id)
-            db.session.add(contact)
-            db.session.commit()
-            return jsonify({'success': True})
+    if email:
+        receiver = User.query.filter_by(email=email).first()
+        if receiver and receiver.id != current_user.id:
+            # Проверяем, нет ли уже заявки
+            existing = FriendRequest.query.filter_by(
+                sender_id=current_user.id,
+                receiver_id=receiver.id,
+                status='pending'
+            ).first()
+            
+            if not existing:
+                # Проверяем, не друзья ли уже
+                existing_friend = Friend.query.filter_by(
+                    user_id=current_user.id,
+                    friend_id=receiver.id
+                ).first()
+                
+                if not existing_friend:
+                    request_obj = FriendRequest(
+                        sender_id=current_user.id,
+                        receiver_id=receiver.id
+                    )
+                    db.session.add(request_obj)
+                    db.session.commit()
+                    return jsonify({'success': True})
     
-    return jsonify({'error': 'Invalid data'}), 400
+    return jsonify({'error': 'User not found'}), 404
+
+@app.route('/accept_friend_request/<int:request_id>', methods=['POST'])
+def accept_friend_request(request_id):
+    """Принять заявку в друзья"""
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    friend_request = FriendRequest.query.get_or_404(request_id)
+    
+    if friend_request.receiver_id == current_user.id:
+        friend_request.status = 'accepted'
+        
+        # Добавляем в друзья обоим
+        friend1 = Friend(user_id=current_user.id, friend_id=friend_request.sender_id)
+        friend2 = Friend(user_id=friend_request.sender_id, friend_id=current_user.id)
+        
+        db.session.add(friend1)
+        db.session.add(friend2)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    
+    return jsonify({'error': 'Permission denied'}), 403
+
+@app.route('/reject_friend_request/<int:request_id>', methods=['POST'])
+def reject_friend_request(request_id):
+    """Отклонить заявку в друзья"""
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    friend_request = FriendRequest.query.get_or_404(request_id)
+    
+    if friend_request.receiver_id == current_user.id:
+        friend_request.status = 'rejected'
+        db.session.commit()
+        return jsonify({'success': True})
+    
+    return jsonify({'error': 'Permission denied'}), 403
 
 @app.route('/chat/<int:user_id>')
 def private_chat(user_id):
@@ -208,6 +306,11 @@ def private_chat(user_id):
         return redirect(url_for('glavnaya'))
     
     other_user = User.query.get_or_404(user_id)
+    
+    # Проверяем, являются ли они друзьями
+    is_friend = Friend.query.filter_by(user_id=current_user.id, friend_id=user_id).first()
+    if not is_friend:
+        return redirect(url_for('messages'))
     
     messages = Message.query.filter(
         ((Message.sender_id == current_user.id) & (Message.receiver_id == user_id)) |
@@ -242,6 +345,17 @@ def send_message():
     
     return jsonify({'error': 'Invalid data'}), 400
 
+@app.route('/obshchenie')
+def obshchenie():
+    if not current_user.is_authenticated:
+        return redirect(url_for('glavnaya'))
+    
+    groups = Group.query.all()
+    
+    return render_template('obshchenie.html', 
+                          user=current_user, 
+                          groups=groups)
+
 @app.route('/group/<int:group_id>')
 def group_chat(group_id):
     if not current_user.is_authenticated:
@@ -274,6 +388,41 @@ def group_chat(group_id):
                           members=members,
                           all_users=all_users,
                           is_admin=membership.is_admin)
+
+@app.route('/update_group/<int:group_id>', methods=['POST'])
+def update_group(group_id):
+    """Обновление настроек группы"""
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    group = Group.query.get_or_404(group_id)
+    
+    # Проверяем, является ли пользователь админом группы
+    membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=group_id, is_admin=True).first()
+    if not membership:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    name = request.form.get('name')
+    description = request.form.get('description')
+    is_public = request.form.get('is_public') == 'on'
+    
+    if name:
+        group.name = name
+    if description is not None:
+        group.description = description
+    group.is_public = is_public
+    
+    if 'avatar' in request.files:
+        file = request.files['avatar']
+        if file and file.filename:
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if ext in app.config['ALLOWED_EXTENSIONS']:
+                filename = secure_filename(f"group_{group.id}_{file.filename}")
+                file.save(os.path.join('static/group_avatars', filename))
+                group.avatar = f'/static/group_avatars/{filename}'
+    
+    db.session.commit()
+    return redirect(url_for('group_chat', group_id=group_id))
 
 @app.route('/add_to_group', methods=['POST'])
 def add_to_group():
@@ -369,6 +518,46 @@ def create_group():
 @app.route('/terms')
 def terms():
     return render_template('terms.html')
+
+@app.route('/admin')
+def admin_panel():
+    """Админ-панель"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return redirect(url_for('glavnaya'))
+    
+    users = User.query.all()
+    groups = Group.query.all()
+    
+    return render_template('admin.html', user=current_user, users=users, groups=groups)
+
+@app.route('/ban_user/<int:user_id>', methods=['POST'])
+def ban_user(user_id):
+    """Бан пользователя"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    data = request.json
+    reason = data.get('reason', 'Нарушение правил')
+    
+    user = User.query.get_or_404(user_id)
+    user.is_banned = True
+    user.ban_reason = reason
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/unban_user/<int:user_id>', methods=['POST'])
+def unban_user(user_id):
+    """Разбан пользователя"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    user.is_banned = False
+    user.ban_reason = None
+    db.session.commit()
+    
+    return jsonify({'success': True})
 
 @app.route('/login/google')
 def google_login():
