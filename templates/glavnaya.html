@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Спектр Общения</title>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -13,25 +12,21 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
         
-        /* Тема по умолчанию - Голубо-бело-синяя */
         :root {
             --bg-gradient: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
             --navbar-bg: #2196f3;
             --text-color: #333;
             --card-bg: rgba(255, 255, 255, 0.9);
             --accent: #1976d2;
-            --accent-light: #64b5f6;
             --border: #bbdefb;
         }
         
-        /* Тема Альфа - чёрно-бело-серая */
         body.alpha-theme {
             --bg-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             --navbar-bg: #2c3e50;
             --text-color: #ecf0f1;
             --card-bg: rgba(52, 73, 94, 0.9);
             --accent: #3498db;
-            --accent-light: #5dade2;
             --border: #7f8c8d;
         }
         
@@ -239,21 +234,5 @@
             </div>
         </div>
     </main>
-
-    <script>
-        const socket = io();
-        
-        socket.on('friend_request', function(data) {
-            if ({{ user.notifications|default(false)|tojson }}) {
-                alert(`🔔 Заявка в друзья от ${data.from}`);
-            }
-        });
-        
-        socket.on('friend_accepted', function(data) {
-            if ({{ user.notifications|default(false)|tojson }}) {
-                alert(`🔔 ${data.by} принял(а) вашу заявку`);
-            }
-        });
-    </script>
 </body>
 </html>
