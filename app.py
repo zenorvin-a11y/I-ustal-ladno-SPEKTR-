@@ -9,7 +9,6 @@ from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import oauth_authorized
 from werkzeug.utils import secure_filename
 from sqlalchemy import or_
-from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'spektr-super-secret-key-2026'
@@ -19,9 +18,6 @@ app.config['UPLOAD_FOLDER'] = 'static/avatars'
 app.config['GROUP_UPLOAD_FOLDER'] = 'static/group_avatars'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
-
-# SocketIO для уведомлений
-socketio = SocketIO(app, cors_allowed_origins="*")
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['GROUP_UPLOAD_FOLDER'], exist_ok=True)
@@ -36,14 +32,13 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     name = db.Column(db.String(100))
     avatar = db.Column(db.String(200), default='/static/logo.png')
-    theme = db.Column(db.String(20), default='light')  # light или alpha
+    theme = db.Column(db.String(20), default='light')
     notifications = db.Column(db.Boolean, default=True)
     sound = db.Column(db.Boolean, default=True)
     is_banned = db.Column(db.Boolean, default=False)
     ban_reason = db.Column(db.String(200))
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    socket_id = db.Column(db.String(100))
     
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', back_populates='sender')
     received_messages = db.relationship('Message', foreign_keys='Message.receiver_id', back_populates='receiver')
@@ -167,20 +162,6 @@ if client_id and client_secret:
             login_user(user)
             session['user_id'] = user.id
 
-# ========== WEBSOCKET ==========
-@socketio.on('connect')
-def handle_connect():
-    if current_user.is_authenticated:
-        current_user.socket_id = request.sid
-        db.session.commit()
-        print(f"Socket connected: {current_user.email}")
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    if current_user.is_authenticated:
-        current_user.socket_id = None
-        db.session.commit()
-
 # ========== МАРШРУТЫ ==========
 @app.route('/')
 def glavnaya():
@@ -224,7 +205,6 @@ def messages():
     if not current_user.is_authenticated:
         return redirect(url_for('glavnaya'))
     
-    # Получаем друзей
     friends = Friend.query.filter_by(user_id=current_user.id).all()
     friend_users = []
     for f in friends:
@@ -232,11 +212,9 @@ def messages():
         if user:
             friend_users.append(user)
     
-    # Получаем заявки
     incoming_requests = FriendRequest.query.filter_by(receiver_id=current_user.id, status='pending').all()
     outgoing_requests = FriendRequest.query.filter_by(sender_id=current_user.id, status='pending').all()
     
-    # Получаем последние сообщения
     last_messages = []
     for friend in friend_users:
         last_msg = Message.query.filter(
@@ -289,14 +267,6 @@ def send_friend_request():
                     )
                     db.session.add(req)
                     db.session.commit()
-                    
-                    # Отправляем уведомление
-                    if receiver.socket_id:
-                        socketio.emit('friend_request', {
-                            'from': current_user.name,
-                            'from_id': current_user.id
-                        }, room=receiver.socket_id)
-                    
                     return jsonify({'success': True})
                 else:
                     return jsonify({'error': 'Уже в друзьях'}), 400
@@ -323,13 +293,6 @@ def accept_friend_request(request_id):
         db.session.add(friend1)
         db.session.add(friend2)
         db.session.commit()
-        
-        # Уведомление отправителю
-        sender = User.query.get(req.sender_id)
-        if sender and sender.socket_id:
-            socketio.emit('friend_accepted', {
-                'by': current_user.name
-            }, room=sender.socket_id)
         
         return jsonify({'success': True})
     
@@ -365,6 +328,11 @@ def private_chat(user_id):
         ((Message.sender_id == user_id) & (Message.receiver_id == current_user.id))
     ).order_by(Message.timestamp).all()
     
+    for msg in messages:
+        if msg.receiver_id == current_user.id and not msg.is_read:
+            msg.is_read = True
+    db.session.commit()
+    
     return render_template('private_chat.html', user=current_user, other_user=other_user, messages=messages)
 
 @app.route('/send_message', methods=['POST'])
@@ -384,17 +352,6 @@ def send_message():
         )
         db.session.add(msg)
         db.session.commit()
-        
-        # Уведомление получателю
-        receiver = User.query.get(receiver_id)
-        if receiver and receiver.socket_id:
-            socketio.emit('new_message', {
-                'from': current_user.name,
-                'from_id': current_user.id,
-                'content': content,
-                'time': msg.timestamp.strftime('%H:%M')
-            }, room=receiver.socket_id)
-        
         return jsonify({'success': True, 'timestamp': msg.timestamp.strftime('%H:%M')})
     
     return jsonify({'error': 'Invalid data'}), 400
@@ -404,7 +361,6 @@ def obshchenie():
     if not current_user.is_authenticated:
         return redirect(url_for('glavnaya'))
     
-    # Показываем только группы, где пользователь участник
     memberships = GroupMember.query.filter_by(user_id=current_user.id).all()
     group_ids = [m.group_id for m in memberships]
     groups = Group.query.filter(Group.id.in_(group_ids)).all() if group_ids else []
@@ -418,14 +374,12 @@ def group_chat(group_id):
     
     group = Group.query.get_or_404(group_id)
     
-    # Проверяем, участник ли пользователь
     membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=group_id).first()
     if not membership:
         return redirect(url_for('obshchenie'))
     
     messages = GroupMessage.query.filter_by(group_id=group_id).order_by(GroupMessage.timestamp).all()
     
-    # Получаем участников
     members = GroupMember.query.filter_by(group_id=group_id).all()
     member_users = []
     for m in members:
@@ -436,7 +390,6 @@ def group_chat(group_id):
                 'is_admin': m.is_admin
             })
     
-    # Для админов - список для добавления
     all_users = []
     if membership.is_admin:
         existing_ids = [m.user_id for m in members]
@@ -453,9 +406,181 @@ def group_chat(group_id):
                           all_users=all_users,
                           is_admin=membership.is_admin)
 
-# Остальные маршруты (сокращено для краткости)
-# ... (create_group, add_to_group, remove_from_group, и т.д.)
+@app.route('/update_group/<int:group_id>', methods=['POST'])
+def update_group(group_id):
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    group = Group.query.get_or_404(group_id)
+    
+    membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=group_id, is_admin=True).first()
+    if not membership:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    name = request.form.get('name')
+    description = request.form.get('description')
+    is_public = request.form.get('is_public') == 'on'
+    
+    if name:
+        group.name = name
+    if description is not None:
+        group.description = description
+    group.is_public = is_public
+    
+    if 'avatar' in request.files:
+        file = request.files['avatar']
+        if file and file.filename:
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if ext in app.config['ALLOWED_EXTENSIONS']:
+                filename = secure_filename(f"group_{group.id}_{file.filename}")
+                file.save(os.path.join(app.config['GROUP_UPLOAD_FOLDER'], filename))
+                group.avatar = f'/static/group_avatars/{filename}'
+    
+    db.session.commit()
+    return redirect(url_for('group_chat', group_id=group_id))
+
+@app.route('/add_to_group', methods=['POST'])
+def add_to_group():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    data = request.json
+    group_id = data.get('group_id')
+    user_id = data.get('user_id')
+    
+    if group_id and user_id:
+        membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=group_id).first()
+        if membership and membership.is_admin:
+            existing = GroupMember.query.filter_by(user_id=user_id, group_id=group_id).first()
+            if not existing:
+                new_member = GroupMember(user_id=user_id, group_id=group_id)
+                db.session.add(new_member)
+                db.session.commit()
+                return jsonify({'success': True})
+    
+    return jsonify({'error': 'Permission denied'}), 403
+
+@app.route('/remove_from_group', methods=['POST'])
+def remove_from_group():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    data = request.json
+    group_id = data.get('group_id')
+    user_id = data.get('user_id')
+    
+    if group_id and user_id:
+        membership = GroupMember.query.filter_by(user_id=current_user.id, group_id=group_id).first()
+        if membership and membership.is_admin:
+            to_remove = GroupMember.query.filter_by(user_id=user_id, group_id=group_id).first()
+            if to_remove:
+                db.session.delete(to_remove)
+                db.session.commit()
+                return jsonify({'success': True})
+    
+    return jsonify({'error': 'Permission denied'}), 403
+
+@app.route('/send_group_message', methods=['POST'])
+def send_group_message():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    data = request.json
+    group_id = data.get('group_id')
+    content = data.get('content')
+    
+    if group_id and content:
+        msg = GroupMessage(
+            user_id=current_user.id,
+            group_id=group_id,
+            content=content
+        )
+        db.session.add(msg)
+        db.session.commit()
+        return jsonify({'success': True, 'timestamp': msg.timestamp.strftime('%H:%M')})
+    
+    return jsonify({'error': 'Invalid data'}), 400
+
+@app.route('/create_group', methods=['POST'])
+def create_group():
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    name = request.form.get('name')
+    description = request.form.get('description', '')
+    
+    if name:
+        group = Group(
+            name=name,
+            description=description,
+            creator_id=current_user.id
+        )
+        db.session.add(group)
+        db.session.commit()
+        
+        membership = GroupMember(
+            user_id=current_user.id,
+            group_id=group.id,
+            is_admin=True
+        )
+        db.session.add(membership)
+        db.session.commit()
+        
+        return redirect(url_for('obshchenie'))
+    
+    return redirect(url_for('obshchenie'))
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
+@app.route('/admin')
+def admin_panel():
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return redirect(url_for('glavnaya'))
+    
+    users = User.query.all()
+    groups = Group.query.all()
+    
+    return render_template('admin.html', user=current_user, users=users, groups=groups)
+
+@app.route('/ban_user/<int:user_id>', methods=['POST'])
+def ban_user(user_id):
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    data = request.json
+    reason = data.get('reason', 'Нарушение правил')
+    
+    user = User.query.get_or_404(user_id)
+    user.is_banned = True
+    user.ban_reason = reason
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/unban_user/<int:user_id>', methods=['POST'])
+def unban_user(user_id):
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    user.is_banned = False
+    user.ban_reason = None
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/login/google')
+def google_login():
+    return redirect(url_for("google.login"))
+
+@app.route('/vyhod')
+def vyhod():
+    logout_user()
+    session.clear()
+    return redirect(url_for('glavnaya'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port)
