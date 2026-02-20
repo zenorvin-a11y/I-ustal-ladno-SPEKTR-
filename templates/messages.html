@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Сообщения - Спектр</title>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -344,7 +343,7 @@
                             </div>
                             <span class="chat-time">{{ item.last_message.timestamp.strftime('%H:%M') }}</span>
                             {% if item.unread > 0 %}
-                            <span class="unread-badge">{{ item.unread }}</span>
+                            <span class="unread-badge" style="background: var(--accent); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">{{ item.unread }}</span>
                             {% endif %}
                         </div>
                         {% endfor %}
@@ -411,24 +410,6 @@
     </div>
 
     <script>
-        const socket = io();
-        
-        socket.on('friend_request', function(data) {
-            alert(`🔔 Заявка в друзья от ${data.from}`);
-            location.reload();
-        });
-        
-        socket.on('friend_accepted', function(data) {
-            alert(`🔔 ${data.by} принял(а) вашу заявку`);
-            location.reload();
-        });
-        
-        socket.on('new_message', function(data) {
-            if ({{ user.notifications|default(false)|tojson }}) {
-                alert(`💬 ${data.from}: ${data.content}`);
-            }
-        });
-        
         function showAddFriendModal() {
             document.getElementById('addFriendModal').classList.add('active');
         }
