@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Условия использования - Спектр Общения</title>
+    <title>Условия - Спектр</title>
     <style>
         * {
             margin: 0;
@@ -11,25 +11,39 @@
             box-sizing: border-box;
         }
         
+        :root {
+            --bg-gradient: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            --navbar-bg: #2196f3;
+            --text-color: #333;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --accent: #1976d2;
+        }
+        
+        body.alpha-theme {
+            --bg-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --navbar-bg: #2c3e50;
+            --text-color: #ecf0f1;
+            --card-bg: rgba(52, 73, 94, 0.9);
+            --accent: #3498db;
+        }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0c10 0%, #1a1e24 100%);
-            color: white;
+            background: var(--bg-gradient);
+            color: var(--text-color);
             min-height: 100vh;
         }
         
         .navbar {
-            background-color: #1a1e24;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            background: var(--navbar-bg);
+            padding: 1rem;
         }
         
         .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
             flex-wrap: wrap;
         }
         
@@ -42,79 +56,42 @@
         .logo img {
             height: 40px;
             width: 40px;
-            border-radius: 50%;
+            object-fit: contain;
         }
         
         .logo span {
-            font-size: 1.3rem;
+            color: white;
             font-weight: bold;
-            color: #4CAF50;
-        }
-        
-        .nav-links {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            flex-wrap: wrap;
         }
         
         .nav-links a {
-            text-decoration: none;
             color: white;
-            font-weight: 500;
+            text-decoration: none;
             padding: 0.5rem 1rem;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-links a:hover {
-            background-color: rgba(76, 175, 80, 0.2);
-            color: #4CAF50;
         }
         
         .main-content {
             max-width: 800px;
             margin: 2rem auto;
-            padding: 0 2rem;
-        }
-        
-        .terms-card {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 10px;
             padding: 2rem;
-            border: 1px solid rgba(76, 175, 80, 0.3);
+            background: var(--card-bg);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+        
+        h3 {
+            color: var(--accent);
+            margin: 1.5rem 0 0.5rem;
+        }
+        
+        p {
+            margin-bottom: 0.5rem;
             line-height: 1.6;
-        }
-        
-        .terms-card h1 {
-            color: #4CAF50;
-            text-align: center;
-            margin-bottom: 2rem;
-            font-size: 2rem;
-        }
-        
-        .terms-card h3 {
-            color: #4CAF50;
-            margin: 1.5rem 0 1rem 0;
-        }
-        
-        .terms-date {
-            text-align: center;
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(76, 175, 80, 0.3);
-            color: rgba(255,255,255,0.5);
-        }
-        
-        @media (max-width: 768px) {
-            .main-content {
-                padding: 1rem;
-            }
-            
-            .terms-card {
-                padding: 1rem;
-            }
         }
     </style>
 </head>
@@ -122,58 +99,37 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="logo">
-                <img src="/static/logo.png" alt="Logo">
-                <span>СПЕКТР ОБЩЕНИЯ</span>
+                <img src="/static/logo.png" alt="Логотип">
+                <span>СПЕКТР</span>
             </div>
             <div class="nav-links">
-                <a href="/">ГЛАВНАЯ</a>
-                {% if user and not user.is_banned %}
-                <a href="/messages">СООБЩЕНИЯ</a>
-                <a href="/obshchenie">ГРУППЫ</a>
-                <a href="/profile">ПРОФИЛЬ</a>
-                {% if user.is_admin %}
-                <a href="/admin">АДМИН</a>
-                {% endif %}
-                <a href="/vyhod">ВЫЙТИ</a>
+                <a href="/">Главная</a>
+                <a href="/terms">Условия</a>
+                {% if user %}
+                <a href="/vyhod">Выход</a>
                 {% else %}
-                <a href="/">НА ГЛАВНУЮ</a>
-                <a href="/login/google">ВОЙТИ</a>
+                <a href="/login/google">Вход</a>
                 {% endif %}
             </div>
         </div>
     </nav>
 
     <main class="main-content">
-        <div class="terms-card">
-            <h1>УСЛОВИЯ ИСПОЛЬЗОВАНИЯ</h1>
-            
-            <h3>1. ОБЩИЕ ПОЛОЖЕНИЯ</h3>
-            <p>1.1. Используя платформу "Спектр Общения", вы соглашаетесь с данными правилами.</p>
-            <p>1.2. Платформа предоставляется "как есть" без гарантий бесперебойной работы.</p>
-            <p>1.3. Мы оставляем за собой право блокировать пользователей за нарушение правил.</p>
-            
-            <h3>2. ПРАВА И ОБЯЗАННОСТИ ПОЛЬЗОВАТЕЛЕЙ</h3>
-            <p>2.1. Пользователь обязуется не оскорблять других участников.</p>
-            <p>2.2. Запрещена публикация спама, рекламы и противоправного контента.</p>
-            <p>2.3. Пользователь несёт ответственность за сохранность своих данных.</p>
-            
-            <h3>3. КОНФИДЕНЦИАЛЬНОСТЬ</h3>
-            <p>3.1. Мы не передаём ваши данные третьим лицам.</p>
-            <p>3.2. Вся переписка является конфиденциальной.</p>
-            <p>3.3. Мы используем шифрование для защиты сообщений.</p>
-            
-            <h3>4. БЛОКИРОВКИ И ОГРАНИЧЕНИЯ</h3>
-            <p>4.1. Администраторы имеют право блокировать пользователей за нарушения.</p>
-            <p>4.2. Блокировка может быть временной или постоянной.</p>
-            <p>4.3. Заблокированный пользователь теряет доступ к чатам.</p>
-            
-            <h3>5. ОТВЕТСТВЕННОСТЬ</h3>
-            <p>5.1. Администрация не несёт ответственности за действия пользователей.</p>
-            <p>5.2. В случае нарушения правил, аккаунт может быть заблокирован без предупреждения.</p>
-            
-            <div class="terms-date">
-                Последнее обновление: 18 февраля 2026 года
-            </div>
+        <h1>Условия использования</h1>
+        
+        <h3>1. Общие положения</h3>
+        <p>1.1. Используя платформу, вы соглашаетесь с правилами.</p>
+        <p>1.2. Платформа предоставляется "как есть".</p>
+        
+        <h3>2. Права и обязанности</h3>
+        <p>2.1. Не оскорблять других участников.</p>
+        <p>2.2. Запрещён спам и реклама.</p>
+        
+        <h3>3. Конфиденциальность</h3>
+        <p>3.1. Данные не передаются третьим лицам.</p>
+        
+        <div style="margin-top: 2rem; text-align: center; opacity: 0.7;">
+            Последнее обновление: 20 февраля 2026
         </div>
     </main>
 </body>
