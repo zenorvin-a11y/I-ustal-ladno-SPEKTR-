@@ -2,64 +2,86 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Спектр Общения</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        /* Тема по умолчанию - Голубо-бело-синяя */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            --navbar-bg: #2196f3;
+            --text-color: #333;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --accent: #1976d2;
+            --accent-light: #64b5f6;
+            --border: #bbdefb;
+        }
+        
+        /* Тема Альфа - чёрно-бело-серая */
+        body.alpha-theme {
+            --bg-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --navbar-bg: #2c3e50;
+            --text-color: #ecf0f1;
+            --card-bg: rgba(52, 73, 94, 0.9);
+            --accent: #3498db;
+            --accent-light: #5dade2;
+            --border: #7f8c8d;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0c10 0%, #1a1e24 100%);
-            color: white;
+            background: var(--bg-gradient);
+            color: var(--text-color);
             min-height: 100vh;
+            transition: all 0.3s ease;
         }
         
         .navbar {
-            background-color: #1a1e24;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            background: var(--navbar-bg);
+            padding: 0.8rem 1rem;
             position: sticky;
             top: 0;
             z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
         .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
             flex-wrap: wrap;
-            gap: 1rem;
         }
         
         .logo {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.8rem;
+            flex-shrink: 0;
         }
         
         .logo img {
             height: 40px;
             width: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #4CAF50;
+            object-fit: contain;
         }
         
         .logo span {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: bold;
-            color: #4CAF50;
+            color: white;
         }
         
         .nav-links {
             display: flex;
-            gap: 1rem;
+            gap: 0.5rem;
             align-items: center;
             flex-wrap: wrap;
         }
@@ -69,176 +91,169 @@
             color: white;
             font-weight: 500;
             padding: 0.5rem 1rem;
-            border-radius: 4px;
-            transition: all 0.3s ease;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            background: rgba(255,255,255,0.1);
+            transition: all 0.3s;
         }
         
         .nav-links a:hover {
-            background-color: rgba(76, 175, 80, 0.2);
-            color: #4CAF50;
+            background: rgba(255,255,255,0.2);
         }
         
-        .btn {
-            background: #4CAF50;
-            color: white;
-            padding: 0.5rem 1.5rem;
-            border-radius: 4px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .btn:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+        .nav-links .btn {
+            background: white;
+            color: var(--navbar-bg);
         }
         
         .main-content {
             max-width: 1200px;
             margin: 2rem auto;
-            padding: 0 2rem;
+            padding: 0 1rem;
         }
         
         .hero {
-            background: rgba(255,255,255,0.05);
+            background: var(--card-bg);
             backdrop-filter: blur(10px);
-            border-radius: 10px;
-            padding: 3rem;
+            border-radius: 20px;
+            padding: 2rem;
             margin-bottom: 2rem;
-            border: 1px solid rgba(76, 175, 80, 0.3);
+            border: 1px solid var(--border);
             text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
         
         .hero h1 {
-            font-size: 2.5rem;
-            color: #4CAF50;
+            color: var(--accent);
             margin-bottom: 1rem;
+            font-size: 2rem;
         }
         
         .hero p {
-            font-size: 1.2rem;
-            color: rgba(255,255,255,0.8);
-            margin-bottom: 2rem;
-        }
-        
-        .banned-message {
-            background: rgba(244, 67, 54, 0.1);
-            border: 2px solid #f44336;
-            color: #f44336;
-            padding: 2rem;
-            border-radius: 10px;
-            text-align: center;
-            margin-bottom: 2rem;
+            font-size: 1.1rem;
+            color: var(--text-color);
+            margin-bottom: 1.5rem;
         }
         
         .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
         }
         
         .feature-card {
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 1.5rem;
             text-align: center;
-            border: 1px solid rgba(76, 175, 80, 0.3);
-            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
         }
         
         .feature-card:hover {
             transform: translateY(-5px);
-            border-color: #4CAF50;
-            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
         }
         
         .feature-card h3 {
-            color: #4CAF50;
-            margin-bottom: 1rem;
-            font-size: 1.3rem;
-        }
-        
-        .feature-card p {
-            color: rgba(255,255,255,0.7);
-            line-height: 1.6;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
         }
         
         @media (max-width: 768px) {
             .nav-container {
                 flex-direction: column;
+                gap: 0.8rem;
+            }
+            
+            .nav-links {
+                justify-content: center;
+                width: 100%;
+            }
+            
+            .nav-links a {
+                flex: 1 1 auto;
                 text-align: center;
+                padding: 0.5rem;
             }
             
             .hero h1 {
-                font-size: 2rem;
+                font-size: 1.5rem;
             }
         }
     </style>
 </head>
-<body>
+<body class="{{ 'alpha-theme' if user and user.theme == 'alpha' else '' }}">
     <nav class="navbar">
         <div class="nav-container">
             <div class="logo">
-                <img src="/static/logo.png" alt="Логотип Спектр Общения">
-                <span>СПЕКТР ОБЩЕНИЯ</span>
+                <img src="/static/logo.png" alt="Логотип">
+                <span>СПЕКТР</span>
             </div>
             <div class="nav-links">
-                <a href="/">ГЛАВНАЯ</a>
+                <a href="/">Главная</a>
                 {% if user and not user.is_banned %}
-                <a href="/messages">СООБЩЕНИЯ</a>
-                <a href="/obshchenie">ГРУППЫ</a>
-                <a href="/profile">ПРОФИЛЬ</a>
-                <a href="/terms">УСЛОВИЯ</a>
+                <a href="/messages">Сообщения</a>
+                <a href="/obshchenie">Группы</a>
+                <a href="/profile">Профиль</a>
                 {% if user.is_admin %}
-                <a href="/admin">АДМИН</a>
+                <a href="/admin">Админ</a>
                 {% endif %}
-                <a href="/vyhod" class="btn">ВЫЙТИ</a>
+                <a href="/vyhod" class="btn">Выход</a>
                 {% else %}
-                <a href="/terms">УСЛОВИЯ</a>
-                <a href="/login/google" class="btn">ВОЙТИ ЧЕРЕЗ GOOGLE</a>
+                <a href="/terms">Условия</a>
+                <a href="/login/google" class="btn">Войти</a>
                 {% endif %}
             </div>
         </div>
     </nav>
 
     <main class="main-content">
-        {% if banned %}
-        <div class="banned-message">
-            <h2>Ваш аккаунт заблокирован</h2>
-            <p>Причина: {{ user.ban_reason if user else 'Нарушение правил' }}</p>
-        </div>
-        {% endif %}
-
         {% if user and not user.is_banned %}
         <div class="hero">
             <h1>С возвращением, {{ user.name }}!</h1>
-            <p>Вы успешно вошли в систему</p>
-            <a href="/messages" class="btn">ПЕРЕЙТИ К СООБЩЕНИЯМ</a>
+            <p>Вы вошли как {{ user.email }}</p>
+            <a href="/messages" class="btn" style="background: var(--accent); color: white; padding: 0.8rem 2rem; text-decoration: none; border-radius: 25px;">Перейти к чатам</a>
         </div>
-        {% elif not banned %}
+        {% else %}
         <div class="hero">
-            <h1>ДОБРО ПОЖАЛОВАТЬ В СПЕКТР ОБЩЕНИЯ</h1>
-            <p>Современная платформа для комфортного и безопасного общения</p>
-            <a href="/login/google" class="btn">ВОЙТИ ЧЕРЕЗ GOOGLE</a>
+            <h1>Добро пожаловать в Спектр</h1>
+            <p>Современная платформа для общения</p>
+            <a href="/login/google" class="btn" style="background: var(--accent); color: white; padding: 0.8rem 2rem; text-decoration: none; border-radius: 25px;">Войти через Google</a>
         </div>
         {% endif %}
 
         <div class="features">
             <div class="feature-card">
-                <h3>🔒 БЕЗОПАСНОСТЬ</h3>
-                <p>Ваши данные защищены современными технологиями шифрования. Модерация и защита от спама.</p>
+                <h3>🔒 Безопасность</h3>
+                <p>Ваши данные под защитой</p>
             </div>
             <div class="feature-card">
-                <h3>💬 СООБЩЕНИЯ</h3>
-                <p>Личные сообщения и групповые чаты. Отправляйте заявки в друзья по email.</p>
+                <h3>💬 Сообщения</h3>
+                <p>Личные чаты и группы</p>
             </div>
             <div class="feature-card">
-                <h3>🌐 ДОСТУПНОСТЬ</h3>
-                <p>Работает везде: компьютер, планшет, телефон. Адаптивный дизайн под любое устройство.</p>
+                <h3>🎨 Две темы</h3>
+                <p>Голубая или Альфа</p>
             </div>
         </div>
     </main>
+
+    <script>
+        const socket = io();
+        
+        socket.on('friend_request', function(data) {
+            if ({{ user.notifications|default(false)|tojson }}) {
+                alert(`🔔 Заявка в друзья от ${data.from}`);
+            }
+        });
+        
+        socket.on('friend_accepted', function(data) {
+            if ({{ user.notifications|default(false)|tojson }}) {
+                alert(`🔔 ${data.by} принял(а) вашу заявку`);
+            }
+        });
+    </script>
 </body>
 </html>
