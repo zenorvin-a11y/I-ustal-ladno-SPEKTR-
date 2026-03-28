@@ -2,8 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ group.name }} - Спектр</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,30 +13,41 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
         
+        :root {
+            --bg: #0a0c10;
+            --sidebar: #1a1e24;
+            --text: #ffffff;
+            --accent: #4CAF50;
+            --message-bg: #2d2f36;
+            --own-message: #4CAF50;
+        }
+        
         body {
-            background: #0a0c10;
-            color: white;
-            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
         .navbar {
-            background: #1a1e24;
+            background: var(--sidebar);
             padding: 0.8rem 1rem;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.3);
         }
         
         .nav-container {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         
         .logo {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.8rem;
         }
         
         .logo img {
@@ -47,13 +59,12 @@
         .logo span {
             font-size: 1rem;
             font-weight: bold;
-            color: #4CAF50;
+            color: var(--accent);
         }
         
         .nav-links {
             display: flex;
-            gap: 0.3rem;
-            overflow-x: auto;
+            gap: 0.5rem;
         }
         
         .nav-links a {
@@ -61,94 +72,100 @@
             color: white;
             padding: 0.4rem 0.8rem;
             border-radius: 20px;
-            font-size: 0.85rem;
             background: rgba(255,255,255,0.1);
+            font-size: 0.85rem;
         }
         
         .chat-container {
             display: flex;
-            flex-direction: column;
-            height: calc(100vh - 60px);
-            margin: 0;
-            padding: 0;
+            flex: 1;
+            overflow: hidden;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
         }
         
         .chat-main {
-            flex: 1;
+            flex: 3;
             display: flex;
             flex-direction: column;
-            background: rgba(255,255,255,0.02);
+            background: var(--bg);
         }
         
         .chat-header {
-            padding: 0.8rem;
+            padding: 1rem;
             border-bottom: 1px solid rgba(76, 175, 80, 0.3);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1a1e24;
+            background: var(--sidebar);
         }
         
-        .chat-header-left h2 {
-            color: #4CAF50;
-            font-size: 1.1rem;
+        .chat-header h2 {
+            color: var(--accent);
+            font-size: 1.2rem;
         }
         
-        .chat-header-left p {
-            color: rgba(255,255,255,0.5);
-            font-size: 0.7rem;
-        }
-        
-        .settings-btn {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
+        .chat-header p {
             font-size: 0.8rem;
+            opacity: 0.7;
         }
         
         .messages {
             flex: 1;
-            padding: 0.8rem;
+            padding: 1rem;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.8rem;
         }
         
         .message {
-            max-width: 85%;
-            padding: 0.6rem;
+            max-width: 70%;
+            padding: 0.6rem 0.8rem;
             border-radius: 12px;
-            background: rgba(255,255,255,0.1);
+            background: var(--message-bg);
             font-size: 0.9rem;
         }
         
         .message.own {
             align-self: flex-end;
-            background: #4CAF50;
+            background: var(--own-message);
         }
         
         .message-header {
             display: flex;
-            justify-content: space-between;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 0.3rem;
             font-size: 0.7rem;
-            margin-bottom: 0.2rem;
+        }
+        
+        .message-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+        
+        .message-name {
+            font-weight: bold;
+            color: var(--accent);
+        }
+        
+        .message-time {
+            opacity: 0.5;
         }
         
         .input-area {
-            padding: 0.8rem;
-            background: #1a1e24;
+            padding: 1rem;
+            background: var(--sidebar);
             display: flex;
             gap: 0.5rem;
+            border-top: 1px solid rgba(76, 175, 80, 0.3);
         }
         
         .input-area input {
             flex: 1;
             padding: 0.8rem;
-            background: #0a0c10;
-            border: 1px solid #4CAF50;
+            background: var(--bg);
+            border: 1px solid var(--accent);
             border-radius: 25px;
             color: white;
             font-size: 0.9rem;
@@ -156,80 +173,53 @@
         
         .input-area button {
             padding: 0.8rem 1.5rem;
-            background: #4CAF50;
+            background: var(--accent);
             color: white;
             border: none;
             border-radius: 25px;
-            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: bold;
         }
         
         .members-sidebar {
-            background: #1a1e24;
-            border-top: 1px solid rgba(76, 175, 80, 0.3);
-            padding: 0.8rem;
+            flex: 1;
+            background: var(--sidebar);
+            border-left: 1px solid rgba(76, 175, 80, 0.3);
+            padding: 1rem;
+            overflow-y: auto;
         }
         
         .members-sidebar h3 {
-            color: #4CAF50;
-            margin-bottom: 0.5rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
             font-size: 0.9rem;
-        }
-        
-        .members-scroll {
-            display: flex;
-            gap: 1rem;
-            overflow-x: auto;
-            padding-bottom: 0.5rem;
         }
         
         .member-item {
             display: flex;
-            flex-direction: column;
             align-items: center;
-            min-width: 60px;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 8px;
         }
         
         .member-avatar {
-            width: 40px;
-            height: 40px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
         }
         
         .member-name {
-            font-size: 0.7rem;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 60px;
+            font-size: 0.85rem;
         }
         
-        @media (min-width: 768px) {
-            .chat-container {
-                flex-direction: row;
-                height: calc(100vh - 80px);
-                max-width: 1200px;
-                margin: 1rem auto;
-                padding: 0 1rem;
-            }
-            
-            .chat-main {
-                flex: 2;
-                border-radius: 12px;
-                border: 1px solid rgba(76, 175, 80, 0.3);
-            }
-            
+        @media (max-width: 768px) {
             .members-sidebar {
-                flex: 1;
-                border: 1px solid rgba(76, 175, 80, 0.3);
-                border-radius: 12px;
-                margin-left: 1rem;
+                display: none;
             }
             
-            .members-scroll {
-                flex-direction: column;
-                overflow-x: hidden;
-                overflow-y: auto;
+            .message {
+                max-width: 85%;
             }
         }
     </style>
@@ -242,11 +232,12 @@
                 <span>СПЕКТР</span>
             </div>
             <div class="nav-links">
-                <a href="/">🏠</a>
-                <a href="/messages">💬</a>
-                <a href="/obshchenie">👥</a>
-                <a href="/profile">👤</a>
-                <a href="/vyhod">🚪</a>
+                <a href="/">Главная</a>
+                <a href="/messages">Сообщения</a>
+                <a href="/groups">Группы</a>
+                <a href="/channels">Каналы</a>
+                <a href="/profile">Профиль</a>
+                <a href="/vyhod">Выход</a>
             </div>
         </div>
     </nav>
@@ -254,21 +245,17 @@
     <div class="chat-container">
         <div class="chat-main">
             <div class="chat-header">
-                <div class="chat-header-left">
-                    <h2>{{ group.name }}</h2>
-                    <p>{{ group.description or '' }}</p>
-                </div>
-                {% if is_admin %}
-                <button class="settings-btn" onclick="showGroupSettings()">⚙️</button>
-                {% endif %}
+                <h2>{{ group.name }}</h2>
+                <p>{{ group.description or 'Нет описания' }}</p>
             </div>
             
             <div class="messages" id="messages">
                 {% for msg in messages %}
                 <div class="message {% if msg.user_id == user.id %}own{% endif %}">
                     <div class="message-header">
-                        <span>{{ msg.user.name }}</span>
-                        <span>{{ msg.timestamp.strftime('%H:%M') }}</span>
+                        <img src="{{ msg.user.avatar }}" class="message-avatar" onerror="this.src='/static/logo.png'">
+                        <span class="message-name">{{ msg.user.name }}</span>
+                        <span class="message-time">{{ msg.timestamp.strftime('%H:%M') }}</span>
                     </div>
                     <div>{{ msg.content }}</div>
                 </div>
@@ -283,65 +270,74 @@
         
         <div class="members-sidebar">
             <h3>Участники ({{ members|length }})</h3>
-            <div class="members-scroll">
-                {% for m in members %}
-                <div class="member-item">
-                    <img src="{{ m.user.avatar }}" class="member-avatar" onerror="this.src='/static/logo.png'">
-                    <span class="member-name">{{ m.user.name }}</span>
-                </div>
-                {% endfor %}
+            {% for m in members %}
+            <div class="member-item">
+                <img src="{{ m.user.avatar }}" class="member-avatar" onerror="this.src='/static/logo.png'">
+                <span class="member-name">{{ m.user.name }}</span>
             </div>
-            {% if is_admin %}
-            <button class="settings-btn" style="width:100%;margin-top:0.5rem;" onclick="showAddMemberModal()">+ Добавить</button>
-            {% endif %}
+            {% endfor %}
         </div>
     </div>
 
     <script>
-        const messagesDiv = document.getElementById('messages');
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        const socket = io();
+        const groupId = {{ group.id }};
+        const userId = {{ user.id }};
         
-        let isSending = false;
+        socket.on('connect', function() {
+            socket.emit('join_group_chat', {group_id: groupId});
+        });
+        
+        socket.on('new_group_message', function(data) {
+            if (data.group_id === groupId) {
+                const messagesDiv = document.getElementById('messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                if (data.user_id === userId) {
+                    messageDiv.classList.add('own');
+                }
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <img src="${data.user_avatar}" class="message-avatar" onerror="this.src='/static/logo.png'">
+                        <span class="message-name">${data.user_name}</span>
+                        <span class="message-time">${data.timestamp}</span>
+                    </div>
+                    <div>${escapeHtml(data.content)}</div>
+                `;
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        });
         
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const content = input.value.trim();
             
-            if (!content || isSending) return;
+            if (!content) return;
             
-            isSending = true;
+            socket.emit('send_group_message', {
+                user_id: userId,
+                group_id: groupId,
+                content: content
+            });
             
-            fetch('/send_group_message', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    group_id: {{ group.id }},
-                    content: content
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const msgDiv = document.createElement('div');
-                    msgDiv.className = 'message own';
-                    msgDiv.innerHTML = `
-                        <div class="message-header">
-                            <span>Вы</span>
-                            <span>${data.timestamp}</span>
-                        </div>
-                        <div>${content}</div>
-                    `;
-                    messagesDiv.appendChild(msgDiv);
-                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                    input.value = '';
-                }
-            })
-            .finally(() => isSending = false);
+            input.value = '';
         }
         
-        input.addEventListener('keypress', e => {
-            if (e.key === 'Enter') sendMessage();
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
         });
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        const messagesDiv = document.getElementById('messages');
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
     </script>
 </body>
 </html>
