@@ -1,16 +1,15 @@
 import os
 import datetime
-import hashlib
 import re
-from flask import Flask, render_template, redirect, url_for, session, request, jsonify, flash
+from flask import Flask, render_template, redirect, url_for, session, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import oauth_authorized
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO, emit, join_room
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import or_, func
+from sqlalchemy import func
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'spektr-super-secret-key-2026'
@@ -247,15 +246,10 @@ def register():
     if request.method == 'GET':
         return render_template('register.html')
     
-    if request.is_json:
-        data = request.json
-    else:
-        data = request.form
-    
-    name = data.get('name', '').strip()
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
-    confirm_password = data.get('confirm_password', '')
+    name = request.form.get('name', '').strip()
+    email = request.form.get('email', '').strip().lower()
+    password = request.form.get('password', '')
+    confirm_password = request.form.get('confirm_password', '')
     
     if not name or not email or not password:
         return jsonify({'error': 'Заполните все поля'}), 400
@@ -309,9 +303,8 @@ def login():
     if current_user.is_authenticated:
         return jsonify({'redirect': url_for('glavnaya')})
     
-    data = request.json
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
+    email = request.form.get('email', '').strip().lower()
+    password = request.form.get('password', '')
     
     user = User.query.filter_by(email=email).first()
     
