@@ -1,6 +1,7 @@
 import os
 import datetime
 import hashlib
+import re
 from flask import Flask, render_template, redirect, url_for, session, request, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
@@ -10,7 +11,6 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_, func
-import re
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'spektr-super-secret-key-2026'
@@ -247,13 +247,16 @@ def register():
     if request.method == 'GET':
         return render_template('register.html')
     
-    data = request.json if request.is_json else request.form
+    if request.is_json:
+        data = request.json
+    else:
+        data = request.form
+    
     name = data.get('name', '').strip()
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
     confirm_password = data.get('confirm_password', '')
     
-    # Валидация
     if not name or not email or not password:
         return jsonify({'error': 'Заполните все поля'}), 400
     
@@ -272,17 +275,14 @@ def register():
     if password != confirm_password:
         return jsonify({'error': 'Пароли не совпадают'}), 400
     
-    # Проверка на существующего пользователя
     existing_user = User.query.filter_by(email=email).first()
     if existing_user:
         return jsonify({'error': 'Пользователь с таким email уже существует'}), 400
     
-    # Проверка лимита регистраций с IP
     client_ip = get_client_ip()
     if not can_register_from_ip(client_ip):
         return jsonify({'error': 'С одного IP-адреса можно зарегистрировать не более 3 аккаунтов в день'}), 403
     
-    # Создание пользователя
     new_user = User(
         email=email,
         name=name,
@@ -290,16 +290,19 @@ def register():
     )
     new_user.set_password(password)
     
-    db.session.add(new_user)
-    db.session.commit()
-    
-    record_registration_attempt(client_ip)
-    
-    # Автоматический вход после регистрации
-    login_user(new_user)
-    session['user_id'] = new_user.id
-    
-    return jsonify({'success': True, 'redirect': url_for('glavnaya')})
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        
+        record_registration_attempt(client_ip)
+        
+        login_user(new_user)
+        session['user_id'] = new_user.id
+        
+        return jsonify({'success': True, 'redirect': url_for('glavnaya')})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Ошибка при создании аккаунта. Попробуйте позже.'}), 500
 
 @app.route('/login', methods=['POST'])
 def login():
