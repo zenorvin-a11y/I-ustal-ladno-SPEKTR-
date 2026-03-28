@@ -45,6 +45,11 @@ login_manager.login_view = 'glavnaya'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # ========== МОДЕЛИ ==========
+class RegistrationAttempt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ip_address = db.Column(db.String(45), nullable=False)
+    attempt_time = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True, nullable=False)
@@ -66,29 +71,18 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-class RegistrationAttempt(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    ip_address = db.Column(db.String(45), nullable=False)
-    attempt_time = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-
 class FriendRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     status = db.Column(db.String(20), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    
-    sender = db.relationship('User', foreign_keys=[sender_id], back_populates='sent_requests')
-    receiver = db.relationship('User', foreign_keys=[receiver_id], back_populates='received_requests')
 
 class Friend(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     friend_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    
-    user = db.relationship('User', foreign_keys=[user_id], back_populates='friends_list')
-    friend = db.relationship('User', foreign_keys=[friend_id])
 
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -99,10 +93,6 @@ class Group(db.Model):
     avatar = db.Column(db.String(200), default='/static/group.png')
     is_public = db.Column(db.Boolean, default=True)
     is_private = db.Column(db.Boolean, default=False)
-    
-    creator = db.relationship('User', foreign_keys=[creator_id])
-    members = db.relationship('GroupMember', back_populates='group')
-    messages = db.relationship('GroupMessage', back_populates='group')
 
 class GroupMember(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -110,9 +100,6 @@ class GroupMember(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'))
     is_admin = db.Column(db.Boolean, default=False)
     joined_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    
-    user = db.relationship('User', foreign_keys=[user_id], back_populates='group_memberships')
-    group = db.relationship('Group', foreign_keys=[group_id], back_populates='members')
 
 class Channel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -121,19 +108,12 @@ class Channel(db.Model):
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     is_public = db.Column(db.Boolean, default=True)
-    
-    creator = db.relationship('User', foreign_keys=[creator_id])
-    members = db.relationship('ChannelMember', back_populates='channel')
-    messages = db.relationship('ChannelMessage', back_populates='channel')
 
 class ChannelMember(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     channel_id = db.Column(db.Integer, db.ForeignKey('channel.id'))
     joined_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    
-    user = db.relationship('User', foreign_keys=[user_id], back_populates='channel_memberships')
-    channel = db.relationship('Channel', foreign_keys=[channel_id], back_populates='members')
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -142,9 +122,6 @@ class Message(db.Model):
     content = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     is_read = db.Column(db.Boolean, default=False)
-    
-    sender = db.relationship('User', foreign_keys=[sender_id], back_populates='sent_messages')
-    receiver = db.relationship('User', foreign_keys=[receiver_id], back_populates='received_messages')
 
 class GroupMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -152,9 +129,6 @@ class GroupMessage(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'))
     content = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    
-    user = db.relationship('User', foreign_keys=[user_id])
-    group = db.relationship('Group', foreign_keys=[group_id], back_populates='messages')
 
 class ChannelMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -162,9 +136,44 @@ class ChannelMessage(db.Model):
     channel_id = db.Column(db.Integer, db.ForeignKey('channel.id'))
     content = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    
-    user = db.relationship('User', foreign_keys=[user_id])
-    channel = db.relationship('Channel', foreign_keys=[channel_id], back_populates='messages')
+
+# Добавляем relationships после определения всех моделей
+User.sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', back_populates='sender')
+User.received_messages = db.relationship('Message', foreign_keys='Message.receiver_id', back_populates='receiver')
+User.group_memberships = db.relationship('GroupMember', back_populates='user')
+User.channel_memberships = db.relationship('ChannelMember', back_populates='user')
+User.sent_requests = db.relationship('FriendRequest', foreign_keys='FriendRequest.sender_id', back_populates='sender')
+User.received_requests = db.relationship('FriendRequest', foreign_keys='FriendRequest.receiver_id', back_populates='receiver')
+User.friends_list = db.relationship('Friend', foreign_keys='Friend.user_id', back_populates='user')
+
+FriendRequest.sender = db.relationship('User', foreign_keys=[FriendRequest.sender_id], back_populates='sent_requests')
+FriendRequest.receiver = db.relationship('User', foreign_keys=[FriendRequest.receiver_id], back_populates='received_requests')
+
+Friend.user = db.relationship('User', foreign_keys=[Friend.user_id], back_populates='friends_list')
+Friend.friend = db.relationship('User', foreign_keys=[Friend.friend_id])
+
+Group.creator = db.relationship('User', foreign_keys=[Group.creator_id])
+Group.members = db.relationship('GroupMember', back_populates='group')
+Group.messages = db.relationship('GroupMessage', back_populates='group')
+
+GroupMember.user = db.relationship('User', foreign_keys=[GroupMember.user_id], back_populates='group_memberships')
+GroupMember.group = db.relationship('Group', foreign_keys=[GroupMember.group_id], back_populates='members')
+
+Channel.creator = db.relationship('User', foreign_keys=[Channel.creator_id])
+Channel.members = db.relationship('ChannelMember', back_populates='channel')
+Channel.messages = db.relationship('ChannelMessage', back_populates='channel')
+
+ChannelMember.user = db.relationship('User', foreign_keys=[ChannelMember.user_id], back_populates='channel_memberships')
+ChannelMember.channel = db.relationship('Channel', foreign_keys=[ChannelMember.channel_id], back_populates='members')
+
+Message.sender = db.relationship('User', foreign_keys=[Message.sender_id], back_populates='sent_messages')
+Message.receiver = db.relationship('User', foreign_keys=[Message.receiver_id], back_populates='received_messages')
+
+GroupMessage.user = db.relationship('User', foreign_keys=[GroupMessage.user_id])
+GroupMessage.group = db.relationship('Group', foreign_keys=[GroupMessage.group_id], back_populates='messages')
+
+ChannelMessage.user = db.relationship('User', foreign_keys=[ChannelMessage.user_id])
+ChannelMessage.channel = db.relationship('Channel', foreign_keys=[ChannelMessage.channel_id], back_populates='messages')
 
 # Создание таблиц в правильном контексте
 with app.app_context():
@@ -184,7 +193,7 @@ with app.app_context():
 
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(User, int(user_id))
+    return User.query.get(int(user_id))
 
 # ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 def get_client_ip():
