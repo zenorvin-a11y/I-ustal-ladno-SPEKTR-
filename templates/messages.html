@@ -86,6 +86,11 @@
             font-size: 0.9rem;
             background: rgba(255,255,255,0.1);
             white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(255,255,255,0.2);
         }
         
         .main-content {
@@ -116,6 +121,13 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .section-header h2 {
+            font-size: 1.3rem;
+            color: var(--accent);
         }
         
         .add-friend-btn {
@@ -126,7 +138,12 @@
             border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
-            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+        
+        .add-friend-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         
         .chat-list, .requests-list {
@@ -134,6 +151,7 @@
             border-radius: 15px;
             padding: 0.5rem;
             border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
         }
         
         .chat-item {
@@ -143,10 +161,16 @@
             padding: 0.8rem;
             border-bottom: 1px solid var(--border);
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-item:hover {
+            background: rgba(33, 150, 243, 0.1);
+            border-radius: 10px;
         }
         
         .chat-item.unread {
-            background: rgba(33, 150, 243, 0.1);
+            background: rgba(33, 150, 243, 0.15);
             border-radius: 10px;
         }
         
@@ -179,6 +203,24 @@
             text-overflow: ellipsis;
         }
         
+        .chat-time {
+            font-size: 0.7rem;
+            opacity: 0.6;
+        }
+        
+        .unread-badge {
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        
         .request-item {
             display: flex;
             align-items: center;
@@ -191,6 +233,7 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
+            object-fit: cover;
         }
         
         .request-info {
@@ -206,6 +249,16 @@
             text-overflow: ellipsis;
         }
         
+        .request-email {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+        
+        .request-status {
+            font-size: 0.7rem;
+            color: #ffc107;
+        }
+        
         .request-buttons {
             display: flex;
             gap: 0.5rem;
@@ -217,6 +270,7 @@
             border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
+            transition: all 0.3s ease;
         }
         
         .accept-btn {
@@ -224,9 +278,19 @@
             color: white;
         }
         
+        .accept-btn:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+        
         .reject-btn {
             background: #f44336;
             color: white;
+        }
+        
+        .reject-btn:hover {
+            background: #d32f2f;
+            transform: scale(1.05);
         }
         
         .modal {
@@ -281,10 +345,29 @@
             width: 100%;
             margin-bottom: 0.5rem;
             font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-content button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
         }
         
         .modal-content .cancel-btn {
             background: #f44336;
+        }
+        
+        .empty-state {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+        
+        .section-title {
+            color: var(--accent);
+            margin: 1rem 0 0.5rem;
+            font-size: 1rem;
         }
         
         @media (max-width: 768px) {
@@ -303,6 +386,10 @@
                 text-align: center;
                 padding: 0.5rem;
             }
+            
+            .messages-grid {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -316,7 +403,8 @@
             <div class="nav-links">
                 <a href="/">Главная</a>
                 <a href="/messages">Сообщения</a>
-                <a href="/obshchenie">Группы</a>
+                <a href="/groups">Группы</a>
+                <a href="/channels">Каналы</a>
                 <a href="/profile">Профиль</a>
                 <a href="/vyhod">Выход</a>
             </div>
@@ -327,6 +415,7 @@
         <h1>Сообщения</h1>
         
         <div class="messages-grid">
+            <!-- Чаты -->
             <div class="chats-section">
                 <div class="section-header">
                     <h2>Чаты</h2>
@@ -339,33 +428,34 @@
                             <img src="{{ item.friend.avatar }}" class="chat-avatar" onerror="this.src='/static/logo.png'">
                             <div class="chat-info">
                                 <div class="chat-name">{{ item.friend.name }}</div>
-                                <div class="chat-preview">{{ item.last_message.content|truncate(30) }}</div>
+                                <div class="chat-preview">{{ item.last_message.content|truncate(35) }}</div>
                             </div>
-                            <span class="chat-time">{{ item.last_message.timestamp.strftime('%H:%M') }}</span>
+                            <div class="chat-time">{{ item.last_message.timestamp.strftime('%H:%M') }}</div>
                             {% if item.unread > 0 %}
-                            <span class="unread-badge" style="background: var(--accent); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">{{ item.unread }}</span>
+                            <div class="unread-badge">{{ item.unread }}</div>
                             {% endif %}
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div style="padding: 2rem; text-align: center; color: var(--text-color);">
+                        <div class="empty-state">
                             Нет чатов. Добавьте друга!
                         </div>
                     {% endif %}
                 </div>
             </div>
             
+            <!-- Заявки -->
             <div class="requests-section">
                 <h2>Заявки</h2>
                 <div class="requests-list">
                     {% if incoming_requests %}
-                        <h3 style="color: var(--accent); margin: 0.5rem 0;">Входящие</h3>
+                        <div class="section-title">Входящие</div>
                         {% for req in incoming_requests %}
                         <div class="request-item">
                             <img src="{{ req.sender.avatar }}" class="request-avatar" onerror="this.src='/static/logo.png'">
                             <div class="request-info">
                                 <div class="request-name">{{ req.sender.name }}</div>
-                                <div style="font-size:0.8rem;">{{ req.sender.email }}</div>
+                                <div class="request-email">{{ req.sender.email }}</div>
                             </div>
                             <div class="request-buttons">
                                 <button class="accept-btn" onclick="acceptRequest({{ req.id }})">✓</button>
@@ -376,22 +466,22 @@
                     {% endif %}
                     
                     {% if outgoing_requests %}
-                        <h3 style="color: var(--accent); margin: 1rem 0 0.5rem;">Исходящие</h3>
+                        <div class="section-title" style="margin-top: 1rem;">Исходящие</div>
                         {% for req in outgoing_requests %}
                         <div class="request-item">
                             <img src="{{ req.receiver.avatar }}" class="request-avatar" onerror="this.src='/static/logo.png'">
                             <div class="request-info">
                                 <div class="request-name">{{ req.receiver.name }}</div>
-                                <div style="font-size:0.8rem;">{{ req.receiver.email }}</div>
-                                <div style="font-size:0.7rem; color: #ffc107;">⏳ Ожидание</div>
+                                <div class="request-email">{{ req.receiver.email }}</div>
+                                <div class="request-status">⏳ Ожидание</div>
                             </div>
                         </div>
                         {% endfor %}
                     {% endif %}
                     
                     {% if not incoming_requests and not outgoing_requests %}
-                    <div style="padding: 2rem; text-align: center;">
-                        Нет заявок
+                    <div class="empty-state">
+                        Нет заявок в друзья
                     </div>
                     {% endif %}
                 </div>
@@ -402,8 +492,8 @@
     <!-- Модальное окно добавления друга -->
     <div class="modal" id="addFriendModal">
         <div class="modal-content">
-            <h3>➕ Добавить друга</h3>
-            <input type="email" id="friendEmail" placeholder="Email пользователя">
+            <h3>Добавить друга</h3>
+            <input type="email" id="friendEmail" placeholder="Email пользователя" autocomplete="off">
             <button onclick="sendFriendRequest()">Отправить заявку</button>
             <button class="cancel-btn" onclick="hideAddFriendModal()">Отмена</button>
         </div>
@@ -412,6 +502,7 @@
     <script>
         function showAddFriendModal() {
             document.getElementById('addFriendModal').classList.add('active');
+            document.getElementById('friendEmail').focus();
         }
         
         function hideAddFriendModal() {
@@ -435,24 +526,60 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Заявка отправлена');
+                    alert('Заявка отправлена');
                     location.reload();
                 } else {
-                    alert('❌ ' + (data.error || 'Ошибка'));
+                    alert('Ошибка: ' + (data.error || 'Не удалось отправить заявку'));
                 }
             })
-            .catch(() => alert('❌ Ошибка сети'));
+            .catch(() => alert('Ошибка сети'));
         }
         
         function acceptRequest(id) {
-            fetch('/accept_friend_request/' + id, {method: 'POST'})
-            .then(() => location.reload());
+            fetch('/accept_friend_request/' + id, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Ошибка: ' + (data.error || 'Не удалось добавить в друзья'));
+                }
+            })
+            .catch(() => alert('Ошибка сети'));
         }
         
         function rejectRequest(id) {
-            fetch('/reject_friend_request/' + id, {method: 'POST'})
-            .then(() => location.reload());
+            fetch('/reject_friend_request/' + id, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Ошибка: ' + (data.error || 'Не удалось отклонить заявку'));
+                }
+            })
+            .catch(() => alert('Ошибка сети'));
         }
+        
+        // Закрытие модального окна по клику вне его
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                hideAddFriendModal();
+            }
+        }
+        
+        // Отправка по Enter
+        document.getElementById('friendEmail').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendFriendRequest();
+            }
+        });
     </script>
 </body>
 </html>
