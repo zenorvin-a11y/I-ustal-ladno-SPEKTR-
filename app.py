@@ -9,12 +9,19 @@ from flask_dance.consumer import oauth_authorized
 from flask_socketio import SocketIO, emit, join_room
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import func
+from sqlalchemy import func, event
+from sqlalchemy.engine import Engine
+import sqlite3
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'spektr-super-secret-key-2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spektr.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'pool_recycle': 3600,
+    'pool_pre_ping': True,
+}
 app.config['UPLOAD_FOLDER'] = 'static/avatars'
 app.config['GROUP_UPLOAD_FOLDER'] = 'static/group_avatars'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -23,10 +30,19 @@ app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['GROUP_UPLOAD_FOLDER'], exist_ok=True)
 
+# Настройка SQLite для многопоточности
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
+
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'glavnaya'
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # ========== МОДЕЛИ ==========
 class User(UserMixin, db.Model):
@@ -43,14 +59,6 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     registration_ip = db.Column(db.String(45), nullable=True)
-    
-    sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', back_populates='sender')
-    received_messages = db.relationship('Message', foreign_keys='Message.receiver_id', back_populates='receiver')
-    group_memberships = db.relationship('GroupMember', back_populates='user')
-    channel_memberships = db.relationship('ChannelMember', back_populates='user')
-    sent_requests = db.relationship('FriendRequest', foreign_keys='FriendRequest.sender_id', back_populates='sender')
-    received_requests = db.relationship('FriendRequest', foreign_keys='FriendRequest.receiver_id', back_populates='receiver')
-    friends_list = db.relationship('Friend', foreign_keys='Friend.user_id', back_populates='user')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -158,10 +166,13 @@ class ChannelMessage(db.Model):
     user = db.relationship('User', foreign_keys=[user_id])
     channel = db.relationship('Channel', foreign_keys=[channel_id], back_populates='messages')
 
+# Создание таблиц в правильном контексте
 with app.app_context():
     db.create_all()
     
-    if not User.query.filter_by(is_admin=True).first():
+    # Создание админа если нет
+    admin = User.query.filter_by(is_admin=True).first()
+    if not admin:
         admin = User(
             email='admin@spektr.ru',
             name='Admin',
@@ -173,7 +184,7 @@ with app.app_context():
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 # ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 def get_client_ip():
@@ -296,6 +307,7 @@ def register():
         return jsonify({'success': True, 'redirect': url_for('glavnaya')})
     except Exception as e:
         db.session.rollback()
+        print(f"Registration error: {e}")
         return jsonify({'error': 'Ошибка при создании аккаунта. Попробуйте позже.'}), 500
 
 @app.route('/login', methods=['POST'])
@@ -719,30 +731,31 @@ def vyhod():
 # ========== WEBSOCKET СОБЫТИЯ ==========
 @socketio.on('send_private_message')
 def handle_private_message(data):
-    sender = User.query.get(data['sender_id'])
-    receiver = User.query.get(data['receiver_id'])
-    
-    if not sender or not receiver:
-        return
-    
-    msg = Message(
-        sender_id=data['sender_id'],
-        receiver_id=data['receiver_id'],
-        content=data['content']
-    )
-    db.session.add(msg)
-    db.session.commit()
-    
-    room = f"private_{min(data['sender_id'], data['receiver_id'])}_{max(data['sender_id'], data['receiver_id'])}"
-    
-    emit('new_private_message', {
-        'id': msg.id,
-        'sender_id': msg.sender_id,
-        'sender_name': sender.name,
-        'sender_avatar': sender.avatar,
-        'content': msg.content,
-        'timestamp': msg.timestamp.strftime('%H:%M')
-    }, room=room)
+    with app.app_context():
+        sender = User.query.get(data['sender_id'])
+        receiver = User.query.get(data['receiver_id'])
+        
+        if not sender or not receiver:
+            return
+        
+        msg = Message(
+            sender_id=data['sender_id'],
+            receiver_id=data['receiver_id'],
+            content=data['content']
+        )
+        db.session.add(msg)
+        db.session.commit()
+        
+        room = f"private_{min(data['sender_id'], data['receiver_id'])}_{max(data['sender_id'], data['receiver_id'])}"
+        
+        emit('new_private_message', {
+            'id': msg.id,
+            'sender_id': msg.sender_id,
+            'sender_name': sender.name,
+            'sender_avatar': sender.avatar,
+            'content': msg.content,
+            'timestamp': msg.timestamp.strftime('%H:%M')
+        }, room=room)
 
 @socketio.on('join_private_chat')
 def join_private_chat(data):
@@ -753,30 +766,31 @@ def join_private_chat(data):
 
 @socketio.on('send_group_message')
 def handle_group_message(data):
-    user = User.query.get(data['user_id'])
-    group = Group.query.get(data['group_id'])
-    
-    if not user or not group:
-        return
-    
-    msg = GroupMessage(
-        user_id=data['user_id'],
-        group_id=data['group_id'],
-        content=data['content']
-    )
-    db.session.add(msg)
-    db.session.commit()
-    
-    room = f"group_{data['group_id']}"
-    
-    emit('new_group_message', {
-        'id': msg.id,
-        'user_id': msg.user_id,
-        'user_name': user.name,
-        'user_avatar': user.avatar,
-        'content': msg.content,
-        'timestamp': msg.timestamp.strftime('%H:%M')
-    }, room=room)
+    with app.app_context():
+        user = User.query.get(data['user_id'])
+        group = Group.query.get(data['group_id'])
+        
+        if not user or not group:
+            return
+        
+        msg = GroupMessage(
+            user_id=data['user_id'],
+            group_id=data['group_id'],
+            content=data['content']
+        )
+        db.session.add(msg)
+        db.session.commit()
+        
+        room = f"group_{data['group_id']}"
+        
+        emit('new_group_message', {
+            'id': msg.id,
+            'user_id': msg.user_id,
+            'user_name': user.name,
+            'user_avatar': user.avatar,
+            'content': msg.content,
+            'timestamp': msg.timestamp.strftime('%H:%M')
+        }, room=room)
 
 @socketio.on('join_group_chat')
 def join_group_chat(data):
@@ -785,30 +799,31 @@ def join_group_chat(data):
 
 @socketio.on('send_channel_message')
 def handle_channel_message(data):
-    user = User.query.get(data['user_id'])
-    channel = Channel.query.get(data['channel_id'])
-    
-    if not user or not channel:
-        return
-    
-    msg = ChannelMessage(
-        user_id=data['user_id'],
-        channel_id=data['channel_id'],
-        content=data['content']
-    )
-    db.session.add(msg)
-    db.session.commit()
-    
-    room = f"channel_{data['channel_id']}"
-    
-    emit('new_channel_message', {
-        'id': msg.id,
-        'user_id': msg.user_id,
-        'user_name': user.name,
-        'user_avatar': user.avatar,
-        'content': msg.content,
-        'timestamp': msg.timestamp.strftime('%H:%M')
-    }, room=room)
+    with app.app_context():
+        user = User.query.get(data['user_id'])
+        channel = Channel.query.get(data['channel_id'])
+        
+        if not user or not channel:
+            return
+        
+        msg = ChannelMessage(
+            user_id=data['user_id'],
+            channel_id=data['channel_id'],
+            content=data['content']
+        )
+        db.session.add(msg)
+        db.session.commit()
+        
+        room = f"channel_{data['channel_id']}"
+        
+        emit('new_channel_message', {
+            'id': msg.id,
+            'user_id': msg.user_id,
+            'user_name': user.name,
+            'user_avatar': user.avatar,
+            'content': msg.content,
+            'timestamp': msg.timestamp.strftime('%H:%M')
+        }, room=room)
 
 @socketio.on('join_channel')
 def join_channel(data):
