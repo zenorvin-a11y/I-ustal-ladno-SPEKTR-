@@ -84,7 +84,6 @@
             color: #f44336;
             font-size: 0.8rem;
             margin-top: 0.3rem;
-            display: none;
         }
         
         button {
@@ -169,28 +168,21 @@
             font-size: 0.8rem;
         }
         
-        .success-message {
-            background: #4caf50;
-            color: white;
+        .alert {
             padding: 0.8rem;
             border-radius: 10px;
             margin-bottom: 1rem;
             display: none;
         }
         
-        .error-alert {
+        .alert-error {
             background: #f44336;
             color: white;
-            padding: 0.8rem;
-            border-radius: 10px;
-            margin-bottom: 1rem;
-            display: none;
         }
         
-        @media (max-width: 480px) {
-            .register-container {
-                padding: 1.5rem;
-            }
+        .alert-success {
+            background: #4caf50;
+            color: white;
         }
     </style>
 </head>
@@ -203,35 +195,34 @@
         
         <h2>Регистрация</h2>
         
-        <div class="error-alert" id="errorAlert"></div>
-        <div class="success-message" id="successMessage"></div>
+        <div id="alertMessage" class="alert"></div>
         
-        <form id="registerForm" onsubmit="return false;">
+        <form id="registerForm" method="POST" action="/register">
             <div class="form-group">
                 <label>Имя пользователя</label>
-                <input type="text" id="name" placeholder="Введите имя" autocomplete="off">
-                <div class="error-message" id="nameError"></div>
+                <input type="text" name="name" id="name" placeholder="Введите имя" required>
+                <div id="nameError" class="error-message"></div>
             </div>
             
             <div class="form-group">
                 <label>Email</label>
-                <input type="email" id="email" placeholder="example@mail.com" autocomplete="off">
-                <div class="error-message" id="emailError"></div>
+                <input type="email" name="email" id="email" placeholder="example@mail.com" required>
+                <div id="emailError" class="error-message"></div>
             </div>
             
             <div class="form-group">
                 <label>Пароль</label>
-                <input type="password" id="password" placeholder="Минимум 4 символа">
-                <div class="error-message" id="passwordError"></div>
+                <input type="password" name="password" id="password" placeholder="Минимум 4 символа" required>
+                <div id="passwordError" class="error-message"></div>
             </div>
             
             <div class="form-group">
                 <label>Подтверждение пароля</label>
-                <input type="password" id="confirmPassword" placeholder="Повторите пароль">
-                <div class="error-message" id="confirmError"></div>
+                <input type="password" name="confirm_password" id="confirmPassword" placeholder="Повторите пароль" required>
+                <div id="confirmError" class="error-message"></div>
             </div>
             
-            <button type="button" id="submitBtn" onclick="register()">Зарегистрироваться</button>
+            <button type="submit" id="submitBtn">Зарегистрироваться</button>
         </form>
         
         <div class="separator">
@@ -248,24 +239,25 @@
     </div>
 
     <script>
-        function showError(elementId, message) {
-            const errorDiv = document.getElementById(elementId);
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-        }
-        
-        function hideError(elementId) {
-            const errorDiv = document.getElementById(elementId);
-            errorDiv.style.display = 'none';
-        }
+        const form = document.getElementById('registerForm');
+        const submitBtn = document.getElementById('submitBtn');
         
         function showAlert(message, isError = true) {
-            const alertDiv = isError ? document.getElementById('errorAlert') : document.getElementById('successMessage');
+            const alertDiv = document.getElementById('alertMessage');
             alertDiv.textContent = message;
+            alertDiv.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
             alertDiv.style.display = 'block';
             setTimeout(() => {
                 alertDiv.style.display = 'none';
             }, 5000);
+        }
+        
+        function hideError(elementId) {
+            document.getElementById(elementId).textContent = '';
+        }
+        
+        function showError(elementId, message) {
+            document.getElementById(elementId).textContent = message;
         }
         
         function validateForm() {
@@ -324,32 +316,22 @@
             return isValid;
         }
         
-        async function register() {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
             if (!validateForm()) {
                 return;
             }
             
-            const submitBtn = document.getElementById('submitBtn');
-            const originalText = submitBtn.textContent;
-            
             submitBtn.disabled = true;
             submitBtn.textContent = 'Регистрация...';
             
-            const data = {
-                name: document.getElementById('name').value.trim(),
-                email: document.getElementById('email').value.trim(),
-                password: document.getElementById('password').value,
-                confirm_password: document.getElementById('confirmPassword').value
-            };
+            const formData = new FormData(form);
             
             try {
                 const response = await fetch('/register', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(data)
+                    body: formData
                 });
                 
                 const result = await response.json();
@@ -360,34 +342,22 @@
                         window.location.href = result.redirect;
                     }, 1500);
                 } else {
-                    const errorMsg = result.error || 'Ошибка регистрации';
-                    showAlert(errorMsg, true);
+                    showAlert(result.error || 'Ошибка регистрации', true);
                     submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
+                    submitBtn.textContent = 'Зарегистрироваться';
                 }
             } catch (error) {
                 console.error('Registration error:', error);
                 showAlert('Ошибка сети. Проверьте подключение к интернету.', true);
                 submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
+                submitBtn.textContent = 'Зарегистрироваться';
             }
-        }
+        });
         
-        // Валидация в реальном времени
         document.getElementById('name').addEventListener('input', () => hideError('nameError'));
         document.getElementById('email').addEventListener('input', () => hideError('emailError'));
         document.getElementById('password').addEventListener('input', () => hideError('passwordError'));
         document.getElementById('confirmPassword').addEventListener('input', () => hideError('confirmError'));
-        
-        // Отправка по Enter
-        const inputs = ['name', 'email', 'password', 'confirmPassword'];
-        inputs.forEach(id => {
-            document.getElementById(id).addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    register();
-                }
-            });
-        });
     </script>
 </body>
 </html>
