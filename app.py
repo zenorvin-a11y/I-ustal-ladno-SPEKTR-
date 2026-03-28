@@ -1,13 +1,16 @@
- import os
+import os
 import datetime
-from flask import Flask, render_template, redirect, url_for, session, request, jsonify
+import hashlib
+from flask import Flask, render_template, redirect, url_for, session, request, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import oauth_authorized
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_, func
+import re
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'spektr-super-secret-key-2026'
@@ -31,6 +34,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True, nullable=False)
     name = db.Column(db.String(100))
+    password_hash = db.Column(db.String(200), nullable=True)
     avatar = db.Column(db.String(200), default='/static/logo.png')
     theme = db.Column(db.String(20), default='light')
     notifications = db.Column(db.Boolean, default=True)
@@ -39,6 +43,7 @@ class User(UserMixin, db.Model):
     ban_reason = db.Column(db.String(200))
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    registration_ip = db.Column(db.String(45), nullable=True)
     
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', back_populates='sender')
     received_messages = db.relationship('Message', foreign_keys='Message.receiver_id', back_populates='receiver')
@@ -47,6 +52,17 @@ class User(UserMixin, db.Model):
     sent_requests = db.relationship('FriendRequest', foreign_keys='FriendRequest.sender_id', back_populates='sender')
     received_requests = db.relationship('FriendRequest', foreign_keys='FriendRequest.receiver_id', back_populates='receiver')
     friends_list = db.relationship('Friend', foreign_keys='Friend.user_id', back_populates='user')
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+class RegistrationAttempt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ip_address = db.Column(db.String(45), nullable=False)
+    attempt_time = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 class FriendRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -152,12 +168,37 @@ with app.app_context():
             name='Admin',
             is_admin=True
         )
+        admin.set_password('admin123')
         db.session.add(admin)
         db.session.commit()
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+def get_client_ip():
+    if request.headers.get('X-Forwarded-For'):
+        ip = request.headers.get('X-Forwarded-For').split(',')[0]
+    else:
+        ip = request.remote_addr
+    return ip
+
+def can_register_from_ip(ip):
+    today = datetime.datetime.utcnow().date()
+    start_of_day = datetime.datetime.combine(today, datetime.time.min)
+    
+    count = RegistrationAttempt.query.filter(
+        RegistrationAttempt.ip_address == ip,
+        RegistrationAttempt.attempt_time >= start_of_day
+    ).count()
+    
+    return count < 3
+
+def record_registration_attempt(ip):
+    attempt = RegistrationAttempt(ip_address=ip)
+    db.session.add(attempt)
+    db.session.commit()
 
 # ========== GOOGLE OAUTH ==========
 client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
@@ -196,6 +237,94 @@ if client_id and client_secret:
             
             login_user(user)
             session['user_id'] = user.id
+
+# ========== ЛОКАЛЬНАЯ РЕГИСТРАЦИЯ И ВХОД ==========
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('glavnaya'))
+    
+    if request.method == 'GET':
+        return render_template('register.html')
+    
+    data = request.json if request.is_json else request.form
+    name = data.get('name', '').strip()
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    confirm_password = data.get('confirm_password', '')
+    
+    # Валидация
+    if not name or not email or not password:
+        return jsonify({'error': 'Заполните все поля'}), 400
+    
+    if len(name) < 2 or len(name) > 50:
+        return jsonify({'error': 'Имя должно быть от 2 до 50 символов'}), 400
+    
+    if not re.match(r'^[a-zA-Z0-9@._-]+$', name):
+        return jsonify({'error': 'Имя может содержать только буквы, цифры и @._-'}), 400
+    
+    if not re.match(r'^[^\s@]+@([^\s@]+\.)+[^\s@]+$', email):
+        return jsonify({'error': 'Некорректный email'}), 400
+    
+    if len(password) < 4:
+        return jsonify({'error': 'Пароль должен быть не менее 4 символов'}), 400
+    
+    if password != confirm_password:
+        return jsonify({'error': 'Пароли не совпадают'}), 400
+    
+    # Проверка на существующего пользователя
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        return jsonify({'error': 'Пользователь с таким email уже существует'}), 400
+    
+    # Проверка лимита регистраций с IP
+    client_ip = get_client_ip()
+    if not can_register_from_ip(client_ip):
+        return jsonify({'error': 'С одного IP-адреса можно зарегистрировать не более 3 аккаунтов в день'}), 403
+    
+    # Создание пользователя
+    new_user = User(
+        email=email,
+        name=name,
+        registration_ip=client_ip
+    )
+    new_user.set_password(password)
+    
+    db.session.add(new_user)
+    db.session.commit()
+    
+    record_registration_attempt(client_ip)
+    
+    # Автоматический вход после регистрации
+    login_user(new_user)
+    session['user_id'] = new_user.id
+    
+    return jsonify({'success': True, 'redirect': url_for('glavnaya')})
+
+@app.route('/login', methods=['POST'])
+def login():
+    if current_user.is_authenticated:
+        return jsonify({'redirect': url_for('glavnaya')})
+    
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    
+    user = User.query.filter_by(email=email).first()
+    
+    if not user or not user.password_hash:
+        return jsonify({'error': 'Неверный email или пароль'}), 401
+    
+    if not user.check_password(password):
+        return jsonify({'error': 'Неверный email или пароль'}), 401
+    
+    if user.is_banned:
+        return jsonify({'error': f'Ваш аккаунт заблокирован. Причина: {user.ban_reason}'}), 403
+    
+    login_user(user)
+    session['user_id'] = user.id
+    
+    return jsonify({'success': True, 'redirect': url_for('glavnaya')})
 
 # ========== МАРШРУТЫ ==========
 @app.route('/')
@@ -554,6 +683,9 @@ def ban_user(user_id):
     reason = data.get('reason', 'Нарушение правил')
     
     user = User.query.get_or_404(user_id)
+    if user.is_admin:
+        return jsonify({'error': 'Нельзя забанить администратора'}), 403
+    
     user.is_banned = True
     user.ban_reason = reason
     db.session.commit()
@@ -581,6 +713,7 @@ def terms():
 def google_login():
     return redirect(url_for("google.login"))
 
+@app.route('/logout')
 @app.route('/vyhod')
 def vyhod():
     logout_user()
