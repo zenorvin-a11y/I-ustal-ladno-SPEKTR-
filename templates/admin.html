@@ -63,9 +63,12 @@
             color: white;
             font-weight: 500;
             padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
         }
         
         .nav-links a:hover {
+            background-color: rgba(76, 175, 80, 0.2);
             color: #4CAF50;
         }
         
@@ -87,9 +90,9 @@
             flex-wrap: wrap;
         }
         
-        .users-section, .groups-section {
+        .users-section, .groups-section, .channels-section {
             flex: 1;
-            min-width: 400px;
+            min-width: 350px;
         }
         
         .section-header {
@@ -98,9 +101,10 @@
         
         .section-header h2 {
             color: #4CAF50;
+            font-size: 1.3rem;
         }
         
-        .users-list, .groups-list {
+        .users-list, .groups-list, .channels-list {
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
             padding: 1rem;
@@ -109,7 +113,7 @@
             overflow-y: auto;
         }
         
-        .user-item, .group-item {
+        .user-item, .group-item, .channel-item {
             display: flex;
             align-items: center;
             gap: 1rem;
@@ -121,23 +125,23 @@
             background: rgba(244, 67, 54, 0.1);
         }
         
-        .user-avatar, .group-avatar {
+        .user-avatar, .group-avatar, .channel-avatar {
             width: 40px;
             height: 40px;
             border-radius: 50%;
             object-fit: cover;
         }
         
-        .user-info, .group-info {
+        .user-info, .group-info, .channel-info {
             flex: 1;
         }
         
-        .user-name, .group-name {
+        .user-name, .group-name, .channel-name {
             font-weight: bold;
             color: #4CAF50;
         }
         
-        .user-email, .group-description {
+        .user-email, .group-description, .channel-description {
             font-size: 0.8rem;
             color: rgba(255,255,255,0.5);
         }
@@ -152,11 +156,13 @@
             gap: 0.5rem;
         }
         
-        .ban-btn, .unban-btn, .delete-btn {
+        .ban-btn, .unban-btn {
             border: none;
             padding: 0.3rem 0.8rem;
             border-radius: 4px;
             cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
         }
         
         .ban-btn {
@@ -164,14 +170,26 @@
             color: white;
         }
         
+        .ban-btn:hover {
+            background: #d32f2f;
+        }
+        
         .unban-btn {
             background: #4CAF50;
             color: white;
         }
         
-        .delete-btn {
-            background: #f44336;
-            color: white;
+        .unban-btn:hover {
+            background: #45a049;
+        }
+        
+        .channel-badge {
+            background: #2196f3;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            display: inline-block;
+            margin-top: 0.3rem;
         }
         
         .modal {
@@ -214,6 +232,7 @@
             border: 1px solid #4CAF50;
             border-radius: 4px;
             color: white;
+            font-size: 1rem;
         }
         
         .modal-content button {
@@ -225,19 +244,57 @@
             cursor: pointer;
             width: 100%;
             margin-bottom: 0.5rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-content button:hover {
+            background: #45a049;
         }
         
         .modal-content .cancel-btn {
             background: #f44336;
         }
         
-        @media (max-width: 768px) {
+        .modal-content .cancel-btn:hover {
+            background: #d32f2f;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        @media (max-width: 1024px) {
             .admin-sections {
                 flex-direction: column;
             }
             
-            .users-section, .groups-section {
+            .users-section, .groups-section, .channels-section {
                 min-width: auto;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .nav-links {
+                justify-content: center;
+                width: 100%;
+            }
+            
+            .nav-links a {
+                flex: 1 1 auto;
+                text-align: center;
+                padding: 0.5rem;
+            }
+            
+            .main-content {
+                padding: 0 1rem;
             }
         }
     </style>
@@ -252,11 +309,12 @@
             <div class="nav-links">
                 <a href="/">ГЛАВНАЯ</a>
                 <a href="/messages">СООБЩЕНИЯ</a>
-                <a href="/obshchenie">ГРУППЫ</a>
+                <a href="/groups">ГРУППЫ</a>
+                <a href="/channels">КАНАЛЫ</a>
                 <a href="/profile">ПРОФИЛЬ</a>
                 <a href="/terms">УСЛОВИЯ</a>
                 {% if user.is_admin %}
-                <a href="/admin">АДМИН</a>
+                <a href="/admin" style="background: #4CAF50;">АДМИН</a>
                 {% endif %}
                 <a href="/vyhod">ВЫЙТИ</a>
             </div>
@@ -267,6 +325,7 @@
         <h1>АДМИН-ПАНЕЛЬ</h1>
         
         <div class="admin-sections">
+            <!-- Пользователи -->
             <div class="users-section">
                 <div class="section-header">
                     <h2>Пользователи ({{ users|length }})</h2>
@@ -278,15 +337,20 @@
                         <div class="user-info">
                             <div class="user-name">{{ user.name }}</div>
                             <div class="user-email">{{ user.email }}</div>
+                            {% if user.is_admin %}
+                            <div class="ban-reason" style="color: #4CAF50;">Администратор</div>
+                            {% endif %}
                             {% if user.is_banned %}
                             <div class="ban-reason">Забанен: {{ user.ban_reason }}</div>
                             {% endif %}
                         </div>
                         <div class="user-actions">
-                            {% if user.is_banned %}
-                            <button class="unban-btn" onclick="unbanUser({{ user.id }})">РАЗБАНИТЬ</button>
-                            {% else %}
-                            <button class="ban-btn" onclick="showBanModal({{ user.id }}, '{{ user.name }}')">ЗАБАНИТЬ</button>
+                            {% if not user.is_admin %}
+                                {% if user.is_banned %}
+                                <button class="unban-btn" onclick="unbanUser({{ user.id }})">РАЗБАНИТЬ</button>
+                                {% else %}
+                                <button class="ban-btn" onclick="showBanModal({{ user.id }}, '{{ user.name }}')">ЗАБАНИТЬ</button>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>
@@ -294,6 +358,7 @@
                 </div>
             </div>
             
+            <!-- Группы -->
             <div class="groups-section">
                 <div class="section-header">
                     <h2>Группы ({{ groups|length }})</h2>
@@ -304,9 +369,37 @@
                         <img src="{{ group.avatar }}" alt="Group Avatar" class="group-avatar" onerror="this.src='/static/group.png'">
                         <div class="group-info">
                             <div class="group-name">{{ group.name }}</div>
-                            <div class="group-description">{{ group.description }}</div>
+                            <div class="group-description">{{ group.description or 'Нет описания' }}</div>
+                            <div class="ban-reason" style="color: #4CAF50;">
+                                {% if group.is_private %}🔒 Приватная{% else %}🌍 Публичная{% endif %} | 
+                                {{ group.members|length }} участников
+                            </div>
                         </div>
                     </div>
+                    {% else %}
+                    <div class="empty-message">Нет созданных групп</div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Каналы -->
+            <div class="channels-section">
+                <div class="section-header">
+                    <h2>Каналы ({{ channels|length }})</h2>
+                </div>
+                <div class="channels-list">
+                    {% for channel in channels %}
+                    <div class="channel-item">
+                        <div class="channel-info">
+                            <div class="channel-name"># {{ channel.name }}</div>
+                            <div class="channel-description">{{ channel.description or 'Нет описания' }}</div>
+                            <div class="channel-badge">
+                                {% if channel.is_public %}Публичный{% else %}Приватный{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="empty-message">Нет созданных каналов</div>
                     {% endfor %}
                 </div>
             </div>
@@ -317,7 +410,7 @@
     <div class="modal" id="banModal">
         <div class="modal-content">
             <h3>Забанить пользователя <span id="banUserName"></span></h3>
-            <input type="text" id="banReason" placeholder="Причина бана">
+            <input type="text" id="banReason" placeholder="Причина бана" autocomplete="off">
             <button onclick="confirmBan()">ЗАБАНИТЬ</button>
             <button class="cancel-btn" onclick="hideBanModal()">ОТМЕНА</button>
         </div>
@@ -330,15 +423,17 @@
             currentUserId = userId;
             document.getElementById('banUserName').textContent = userName;
             document.getElementById('banModal').classList.add('active');
+            document.getElementById('banReason').focus();
         }
         
         function hideBanModal() {
             document.getElementById('banModal').classList.remove('active');
+            document.getElementById('banReason').value = '';
             currentUserId = null;
         }
         
         function confirmBan() {
-            const reason = document.getElementById('banReason').value || 'Нарушение правил';
+            const reason = document.getElementById('banReason').value.trim() || 'Нарушение правил';
             
             fetch('/ban_user/' + currentUserId, {
                 method: 'POST',
@@ -349,29 +444,42 @@
             .then(data => {
                 if (data.success) {
                     location.reload();
+                } else {
+                    alert('Ошибка: ' + (data.error || 'Не удалось забанить пользователя'));
                 }
-            });
+            })
+            .catch(() => alert('Ошибка сети'));
         }
         
         function unbanUser(userId) {
             if (confirm('Разбанить пользователя?')) {
                 fetch('/unban_user/' + userId, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         location.reload();
+                    } else {
+                        alert('Ошибка: ' + (data.error || 'Не удалось разбанить пользователя'));
                     }
-                });
+                })
+                .catch(() => alert('Ошибка сети'));
             }
         }
         
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
-                event.target.classList.remove('active');
+                hideBanModal();
             }
         }
+        
+        document.getElementById('banReason').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                confirmBan();
+            }
+        });
     </script>
 </body>
 </html>
