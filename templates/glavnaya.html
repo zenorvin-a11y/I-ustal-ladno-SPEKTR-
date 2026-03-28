@@ -91,6 +91,7 @@
             white-space: nowrap;
             background: rgba(255,255,255,0.1);
             transition: all 0.3s;
+            cursor: pointer;
         }
         
         .nav-links a:hover {
@@ -131,6 +132,22 @@
             margin-bottom: 1.5rem;
         }
         
+        .hero .btn {
+            background: var(--accent);
+            color: white;
+            padding: 0.8rem 2rem;
+            text-decoration: none;
+            border-radius: 25px;
+            display: inline-block;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .hero .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
         .features {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -154,6 +171,93 @@
         .feature-card h3 {
             color: var(--accent);
             margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+        
+        .feature-card p {
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 100%;
+            border: 2px solid var(--accent);
+        }
+        
+        .modal-content h3 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+        
+        .modal-content input {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+        
+        .modal-content button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .modal-content button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .modal-content .cancel-btn {
+            background: #f44336;
+        }
+        
+        .modal-content .register-link {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .modal-content .register-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .modal-content .register-link a:hover {
+            text-decoration: underline;
         }
         
         @media (max-width: 768px) {
@@ -176,6 +280,10 @@
             .hero h1 {
                 font-size: 1.5rem;
             }
+            
+            .feature-card h3 {
+                font-size: 1.1rem;
+            }
         }
     </style>
 </head>
@@ -190,15 +298,18 @@
                 <a href="/">Главная</a>
                 {% if user and not user.is_banned %}
                 <a href="/messages">Сообщения</a>
-                <a href="/obshchenie">Группы</a>
+                <a href="/groups">Группы</a>
+                <a href="/channels">Каналы</a>
                 <a href="/profile">Профиль</a>
                 {% if user.is_admin %}
                 <a href="/admin">Админ</a>
                 {% endif %}
-                <a href="/vyhod" class="btn">Выход</a>
+                <a href="/vyhod">Выход</a>
                 {% else %}
                 <a href="/terms">Условия</a>
-                <a href="/login/google" class="btn">Войти</a>
+                <a href="#" onclick="showLoginModal()">Вход</a>
+                <a href="/register">Регистрация</a>
+                <a href="/login/google" class="btn">Google</a>
                 {% endif %}
             </div>
         </div>
@@ -209,30 +320,103 @@
         <div class="hero">
             <h1>С возвращением, {{ user.name }}!</h1>
             <p>Вы вошли как {{ user.email }}</p>
-            <a href="/messages" class="btn" style="background: var(--accent); color: white; padding: 0.8rem 2rem; text-decoration: none; border-radius: 25px;">Перейти к чатам</a>
+            <a href="/messages" class="btn">Перейти к чатам</a>
         </div>
         {% else %}
         <div class="hero">
             <h1>Добро пожаловать в Спектр</h1>
             <p>Современная платформа для общения</p>
-            <a href="/login/google" class="btn" style="background: var(--accent); color: white; padding: 0.8rem 2rem; text-decoration: none; border-radius: 25px;">Войти через Google</a>
+            <a href="#" onclick="showLoginModal()" class="btn">Войти в аккаунт</a>
         </div>
         {% endif %}
 
         <div class="features">
             <div class="feature-card">
-                <h3>🔒 Безопасность</h3>
+                <h3>Безопасность</h3>
                 <p>Ваши данные под защитой</p>
             </div>
             <div class="feature-card">
-                <h3>💬 Сообщения</h3>
+                <h3>Сообщения</h3>
                 <p>Личные чаты и группы</p>
             </div>
             <div class="feature-card">
-                <h3>🎨 Две темы</h3>
+                <h3>Две темы</h3>
                 <p>Голубая или Альфа</p>
+            </div>
+            <div class="feature-card">
+                <h3>Каналы</h3>
+                <p>Публичные обсуждения</p>
             </div>
         </div>
     </main>
+
+    <!-- Модальное окно входа -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <h3>Вход в аккаунт</h3>
+            <input type="email" id="loginEmail" placeholder="Email" autocomplete="off">
+            <input type="password" id="loginPassword" placeholder="Пароль">
+            <button onclick="login()">Войти</button>
+            <button class="cancel-btn" onclick="hideLoginModal()">Отмена</button>
+            <div class="register-link">
+                Нет аккаунта? <a href="/register">Зарегистрироваться</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.add('active');
+            document.getElementById('loginEmail').focus();
+        }
+        
+        function hideLoginModal() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+        
+        function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email) {
+                alert('Введите email');
+                return;
+            }
+            
+            if (!password) {
+                alert('Введите пароль');
+                return;
+            }
+            
+            fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email: email, password: password})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    alert('Ошибка: ' + (data.error || 'Неверный email или пароль'));
+                }
+            })
+            .catch(() => alert('Ошибка сети. Проверьте подключение.'));
+        }
+        
+        document.getElementById('loginPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+        
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                hideLoginModal();
+            }
+        }
+    </script>
 </body>
 </html>
