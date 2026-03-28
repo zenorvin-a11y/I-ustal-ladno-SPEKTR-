@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Группы - Спектр</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        :root {
+            --bg-gradient: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            --navbar-bg: #2196f3;
+            --text-color: #333;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --accent: #1976d2;
+            --border: #bbdefb;
+        }
+        
+        body.alpha-theme {
+            --bg-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --navbar-bg: #2c3e50;
+            --text-color: #ecf0f1;
+            --card-bg: rgba(52, 73, 94, 0.9);
+            --accent: #3498db;
+            --border: #7f8c8d;
+        }
+        
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: var(--navbar-bg);
+            padding: 0.8rem 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        
+        .logo img {
+            height: 40px;
+            width: 40px;
+            object-fit: contain;
+        }
+        
+        .logo span {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            background: rgba(255,255,255,0.1);
+            white-space: nowrap;
+        }
+        
+        .main-content {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        h1 {
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .create-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .group-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .group-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .group-name {
+            font-size: 1.2rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+        
+        .group-description {
+            color: var(--text-color);
+            opacity: 0.7;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .group-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            opacity: 0.6;
+        }
+        
+        .join-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            width: 100%;
+        }
+        
+        .private-badge {
+            background: #f44336;
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 100%;
+            border: 2px solid var(--accent);
+        }
+        
+        .modal-content h3 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+        
+        .modal-content input,
+        .modal-content textarea {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+        
+        .modal-content button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        
+        .modal-content .cancel-btn {
+            background: #f44336;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+            
+            .nav-links {
+                justify-content: center;
+                width: 100%;
+            }
+            
+            .nav-links a {
+                flex: 1 1 auto;
+                text-align: center;
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="{{ 'alpha-theme' if user and user.theme == 'alpha' else '' }}">
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="/static/logo.png" alt="Логотип">
+                <span>СПЕКТР</span>
+            </div>
+            <div class="nav-links">
+                <a href="/">Главная</a>
+                <a href="/messages">Сообщения</a>
+                <a href="/groups">Группы</a>
+                <a href="/channels">Каналы</a>
+                <a href="/profile">Профиль</a>
+                <a href="/vyhod">Выход</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="section-header">
+            <h1>Группы</h1>
+            <button class="create-btn" onclick="showCreateModal()">+ Создать группу</button>
+        </div>
+        
+        <h2 style="color: var(--accent); margin: 1rem 0 0.5rem;">Мои группы</h2>
+        <div class="groups-grid">
+            {% for group in groups %}
+            <div class="group-card" onclick="location.href='/group/{{ group.id }}'">
+                {% if group.is_private %}
+                <div class="private-badge">🔒 Приватная</div>
+                {% endif %}
+                <div class="group-name">{{ group.name }}</div>
+                <div class="group-description">{{ group.description or 'Нет описания' }}</div>
+                <div class="group-meta">
+                    <span>{{ group.members|length }} участников</span>
+                    <span>{{ group.created_at.strftime('%d.%m.%Y') }}</span>
+                </div>
+            </div>
+            {% else %}
+            <div style="background: var(--card-bg); padding: 2rem; text-align: center; border-radius: 15px;">
+                Вы ещё не состоите в группах
+            </div>
+            {% endfor %}
+        </div>
+        
+        <h2 style="color: var(--accent); margin: 1rem 0 0.5rem;">Публичные группы</h2>
+        <div class="groups-grid">
+            {% for group in public_groups %}
+            <div class="group-card">
+                <div class="group-name">{{ group.name }}</div>
+                <div class="group-description">{{ group.description or 'Нет описания' }}</div>
+                <div class="group-meta">
+                    <span>{{ group.members|length }} участников</span>
+                </div>
+                {% if group not in groups %}
+                <button class="join-btn" onclick="event.stopPropagation(); joinGroup({{ group.id }})">Вступить</button>
+                {% endif %}
+            </div>
+            {% else %}
+            <div style="background: var(--card-bg); padding: 2rem; text-align: center; border-radius: 15px;">
+                Нет публичных групп
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if private_groups %}
+        <h2 style="color: var(--accent); margin: 1rem 0 0.5rem;">Приватные группы</h2>
+        <div class="groups-grid">
+            {% for group in private_groups %}
+            <div class="group-card" onclick="location.href='/group/{{ group.id }}'">
+                <div class="private-badge">🔒 Приватная</div>
+                <div class="group-name">{{ group.name }}</div>
+                <div class="group-description">{{ group.description or 'Нет описания' }}</div>
+                <div class="group-meta">
+                    <span>{{ group.members|length }} участников</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </main>
+
+    <div class="modal" id="createModal">
+        <div class="modal-content">
+            <h3>Создать группу</h3>
+            <form action="/create_group" method="post">
+                <input type="text" name="name" placeholder="Название группы" required>
+                <textarea name="description" placeholder="Описание" rows="3"></textarea>
+                <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                    <input type="checkbox" name="is_private"> Приватная группа (только по приглашениям)
+                </label>
+                <button type="submit">Создать</button>
+                <button type="button" class="cancel-btn" onclick="hideCreateModal()">Отмена</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showCreateModal() {
+            document.getElementById('createModal').classList.add('active');
+        }
+        
+        function hideCreateModal() {
+            document.getElementById('createModal').classList.remove('active');
+        }
+        
+        function joinGroup(groupId) {
+            fetch('/join_group/' + groupId, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Ошибка');
+                }
+            });
+        }
+        
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>
